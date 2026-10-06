@@ -34,6 +34,11 @@ canvas{display:block;width:100%;height:auto;background:#222}
 .hint{opacity:.78;font-size:14px}
 .status{margin:10px 0;font-weight:600}
 .export-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0}
+.alignment{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}
+.geometry{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}
+.geometry input{width:100px;font:inherit;padding:10px;border-radius:10px}
+.geometry select{font:inherit;padding:10px;border-radius:10px}
+.alignment select{font:inherit;padding:10px;border-radius:10px}
 .export-row select{font:inherit;padding:10px;border-radius:10px;max-width:100%}
 @media(min-width:700px){.grid{grid-template-columns:repeat(4,1fr)}}
 </style>
@@ -52,7 +57,40 @@ canvas{display:block;width:100%;height:auto;background:#222}
   <span id="sceneLabel" class="badge">Scena —</span>
   <button id="next" disabled>Sledeća ›</button>
 </div>
-<button id="focus" disabled>Fokusiraj izabranu scenu</button>
+<div class="controls">
+  <button id="focus" disabled>Fokusiraj izabranu scenu</button>
+  <button id="boundaries" disabled aria-pressed="false">Prikaži sve granice</button>
+</div>
+<div class="alignment">
+  <label for="alignScene">Poravnaj sa</label>
+  <select id="alignScene" disabled></select>
+  <label for="alignEdge">Ivica</label>
+  <select id="alignEdge" disabled>
+    <option value="y0">Gornja</option><option value="y1">Donja</option>
+    <option value="x0">Leva</option><option value="x1">Desna</option>
+  </select>
+  <button id="align" disabled>Poravnaj ivicu</button>
+</div>
+<div class="geometry">
+  <label for="cropWidth">Širina (px)</label><input id="cropWidth" type="number" min="1" step="1" disabled>
+  <label for="cropHeight">Visina (px)</label><input id="cropHeight" type="number" min="1" step="1" disabled>
+  <button id="applyDimensions" disabled>Primeni dimenzije</button>
+</div>
+<div class="geometry">
+  <label for="aspectRatio">Odnos stranica</label>
+  <select id="aspectRatio" disabled>
+    <option value="free">Slobodno</option><option value="1:1">1:1</option>
+    <option value="4:3">4:3</option><option value="3:4">3:4</option>
+    <option value="16:9">16:9</option><option value="9:16">9:16</option>
+    <option value="custom">Ručno</option>
+  </select>
+  <span id="customAspect" hidden>
+    <input id="aspectWidth" type="number" min="0.001" step="any" value="1" aria-label="Širina odnosa" disabled> :
+    <input id="aspectHeight" type="number" min="0.001" step="any" value="1" aria-label="Visina odnosa" disabled>
+  </span>
+  <button id="applyAspect" disabled>Primeni odnos</button>
+</div>
+<p class="hint">Dimenzije su u pikselima originalne slike. Primenjeni odnos ostaje zaključan pri prevlačenju; izaberi „Slobodno” i primeni za otključavanje. Pri poravnanju zaključan okvir pomera se u celini.</p>
 <div class="zoomrow">
   <button id="minus" disabled>−</button>
   <input id="zoom" type="range" min="100" max="600" step="10" value="100" disabled>
@@ -69,7 +107,7 @@ canvas{display:block;width:100%;height:auto;background:#222}
   </select>
 </div>
 <p class="hint">Kvadratni izvoz čuva celu scenu bez rastezanja; ako okvir nije kvadrat, preostali prostor je beo. Za štampu 17 × 17 cm, 2048 px daje oko 306 dpi. Uvećanje ne dodaje nove detalje.</p>
-<p class="hint">Žuti okvir pripada samo izabranoj sceni. Prevuci ivicu ili ugao. Dodirni drugu scenu da je izabereš. Pinch ili +/− za zoom; pri zoom-u prevuci unutrašnjost za pomeranje prikaza.</p>
+<p class="hint">Žuti okvir pripada samo izabranoj sceni. Prevuci ivicu ili ugao. Dodirni drugu scenu da je izabereš. Dupli klik na scenu je fokusira. Dugme „Prikaži sve granice” prikazuje ostale okvire. Pinch ili +/− za zoom; pri zoom-u prevuci unutrašnjost za pomeranje prikaza.</p>
 <div id="status" class="status" role="status" aria-live="polite"></div>
 <p id="cropInfo" class="hint"></p>
 <div id="viewer" class="viewer"><div id="stage" class="stage"><canvas id="preview"></canvas></div></div>
@@ -80,6 +118,12 @@ const file=$('#file'),cv=$('#preview'),ctx=cv.getContext('2d',{willReadFrequentl
 const detectBtn=$('#detect'),splitBtn=$('#split'),zipBtn=$('#zip'),status=$('#status'),grid=$('#grid');
 const viewer=$('#viewer'),stage=$('#stage'),zoomEl=$('#zoom'),plus=$('#plus'),minus=$('#minus'),resetZoom=$('#resetZoom');
 const prev=$('#prev'),next=$('#next'),focusBtn=$('#focus'),sceneLabel=$('#sceneLabel'),exportSize=$('#exportSize');
+const boundariesBtn=$('#boundaries'),alignScene=$('#alignScene'),alignEdge=$('#alignEdge'),alignBtn=$('#align');
+const cropWidth=$('#cropWidth'),cropHeight=$('#cropHeight'),dimensionsBtn=$('#applyDimensions');
+const aspectRatio=$('#aspectRatio'),aspectWidth=$('#aspectWidth'),aspectHeight=$('#aspectHeight'),aspectBtn=$('#applyAspect');
+const geometryControls=[cropWidth,cropHeight,dimensionsBtn,aspectRatio,aspectWidth,aspectHeight,aspectBtn];
+const aspectLocks=new Map();
+let canvasOffset=0,showBoundaries=false;
 let img=null,crops=[],selected=0,zoom=1,panX=0,panY=0,drag=null,pointers=new Map(),pinch=null,dirty=new Set(),loadId=0,exporting=false;
 
 file.onchange=()=>{
@@ -88,9 +132,10 @@ file.onchange=()=>{
   loaded.onload=()=>{
     URL.revokeObjectURL(u); if(id!==loadId)return;
     if(loaded.naturalWidth<32||loaded.naturalHeight<32){status.textContent='Slika mora imati najmanje 32 × 32 px.';return}
-    img=loaded;cv.width=img.naturalWidth;cv.height=img.naturalHeight;
+    img=loaded;canvasOffset=Math.ceil(Math.max(img.naturalWidth,img.naturalHeight)*.05);
+    cv.width=img.naturalWidth+canvasOffset*2;cv.height=img.naturalHeight+canvasOffset*2;
     drag=null;pinch=null;pointers.clear();dirty.clear();resetView();detect();
-    [detectBtn,splitBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn].forEach(x=>x.disabled=false);
+    [detectBtn,splitBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls].forEach(x=>x.disabled=false);
     updateUI();
   };
   loaded.onerror=()=>{URL.revokeObjectURL(u);if(id===loadId)status.textContent='Slika nije učitana. Izaberi JPEG, PNG ili drugi podržani format.'};
@@ -117,24 +162,41 @@ function locate(scores,n){
 }
 function detect(){
   if(!img)return;
-  ctx.clearRect(0,0,cv.width,cv.height);ctx.drawImage(img,0,0);
-  const d=ctx.getImageData(0,0,cv.width,cv.height).data;
-  const xs=locate(scoreLines(d,cv.width,cv.height,true),cv.width);
-  const ys=locate(scoreLines(d,cv.width,cv.height,false),cv.height);
-  const xb=[0,...xs,cv.width],yb=[0,...ys,cv.height];
+  const source=document.createElement('canvas');source.width=img.naturalWidth;source.height=img.naturalHeight;
+  const sourceCtx=source.getContext('2d',{willReadFrequently:true});sourceCtx.drawImage(img,0,0);
+  const d=sourceCtx.getImageData(0,0,source.width,source.height).data;
+  const xs=locate(scoreLines(d,img.naturalWidth,img.naturalHeight,true),img.naturalWidth);
+  const ys=locate(scoreLines(d,img.naturalWidth,img.naturalHeight,false),img.naturalHeight);
+  const xb=[0,...xs,img.naturalWidth],yb=[0,...ys,img.naturalHeight];
   crops=[];
   for(let r=0;r<4;r++)for(let c=0;c<4;c++)crops.push({
     x0:xb[c]+(c?Math.min(3,Math.floor((xb[c+1]-xb[c])/4)):0), x1:xb[c+1]-(c<3?Math.min(3,Math.floor((xb[c+1]-xb[c])/4)):0),
     y0:yb[r]+(r?Math.min(3,Math.floor((yb[r+1]-yb[r])/4)):0), y1:yb[r+1]-(r<3?Math.min(3,Math.floor((yb[r+1]-yb[r])/4)):0)
   });
-  selected=0; grid.innerHTML=''; draw(); updateUI();
+  aspectLocks.clear();selected=0; grid.innerHTML=''; draw(); updateUI();
   status.textContent='Detektovano 16 scena. Izaberi scenu i koriguj njen okvir.';
 }
 detectBtn.onclick=detect;
 
+function syncDimensions(){
+  const c=crops[selected];if(!c)return;
+  cropWidth.value=c.x1-c.x0;cropHeight.value=c.y1-c.y0;
+  cropWidth.max=img.naturalWidth;cropHeight.max=img.naturalHeight;
+}
+function syncAspect(){
+  const lock=aspectLocks.get(selected);
+  aspectRatio.value=lock?lock.preset:'free';
+  if(lock){aspectWidth.value=lock.width;aspectHeight.value=lock.height}
+  $('#customAspect').hidden=aspectRatio.value!=='custom';
+}
 function updateUI(){
+  syncDimensions();syncAspect();
   sceneLabel.textContent=img?'Scena '+(selected+1)+' / 16':'Scena —';
   prev.disabled=exporting||!img||selected===0; next.disabled=exporting||!img||selected===15;
+  const reference=Number(alignScene.value);
+  alignScene.innerHTML=crops.map((c,i)=>i===selected?'':`<option value="${i}">Scena ${i+1}</option>`).join('');
+  alignScene.value=String(reference!==selected&&crops[reference]?reference:(selected%4<3?selected+1:selected-1));
+  alignBtn.disabled=exporting||!img||crops.length<2;
 }
 function select(i,focus=false){
   selected=Math.max(0,Math.min(15,i)); draw(); updateUI(); markCards();
@@ -143,22 +205,101 @@ function select(i,focus=false){
 prev.onclick=()=>select(selected-1,true);
 next.onclick=()=>select(selected+1,true);
 focusBtn.onclick=focusScene;
+boundariesBtn.onclick=()=>{
+  showBoundaries=!showBoundaries;
+  boundariesBtn.textContent=showBoundaries?'Sakrij ostale granice':'Prikaži sve granice';
+  boundariesBtn.setAttribute('aria-pressed',String(showBoundaries));draw();
+};
+function minimumCropSize(){return Math.min(40,Math.max(1,Math.floor(Math.min(img.naturalWidth,img.naturalHeight)/100)))}
+function alignBoundary(){
+  if(!img||exporting)return;
+  const target=crops[selected],reference=crops[Number(alignScene.value)],edge=alignEdge.value;
+  if(!reference||reference===target||!['x0','x1','y0','y1'].includes(edge))return;
+  const value=reference[edge],min=minimumCropSize();
+  const valid=edge==='x0'?value<=target.x1-min:edge==='x1'?value>=target.x0+min:edge==='y0'?value<=target.y1-min:value>=target.y0+min;
+  if(!valid){status.textContent='Ova ivica bi prešla suprotnu ivicu scene. Izaberi drugu scenu ili ivicu.';return}
+  if(aspectLocks.has(selected)){
+    const start=edge[0]+'0',end=edge[0]+'1',delta=value-target[edge];
+    const limit=edge[0]==='x'?img.naturalWidth:img.naturalHeight;
+    if(target[start]+delta<0||target[end]+delta>limit){status.textContent='Poravnati okvir bi izašao iz slike.';return}
+    target[start]+=delta;target[end]+=delta;
+  }else target[edge]=value;
+  draw();updateCard(selected);
+  status.textContent=`Ivica scene ${selected+1} poravnata sa scenom ${Number(alignScene.value)+1}.`;
+}
+alignBtn.onclick=alignBoundary;
+function resizeCrop(width,height){
+  const min=minimumCropSize();
+  if(!Number.isInteger(width)||!Number.isInteger(height)||width<min||height<min||width>img.naturalWidth||height>img.naturalHeight){
+    status.textContent=`Unesi cele dimenzije od najmanje ${min} px, do ${img.naturalWidth} × ${img.naturalHeight} px.`;return false;
+  }
+  const c=crops[selected];
+  c.x0=Math.min(c.x0,img.naturalWidth-width);c.y0=Math.min(c.y0,img.naturalHeight-height);
+  c.x1=c.x0+width;c.y1=c.y0+height;draw();updateCard(selected);return true;
+}
+cropWidth.oninput=()=>{const lock=aspectLocks.get(selected);if(lock)cropHeight.value=Math.round(Number(cropWidth.value)/lock.ratio)};
+cropHeight.oninput=()=>{const lock=aspectLocks.get(selected);if(lock)cropWidth.value=Math.round(Number(cropHeight.value)*lock.ratio)};
+dimensionsBtn.onclick=()=>{
+  if(!img||exporting)return;
+  const width=Number(cropWidth.value),height=Number(cropHeight.value),lock=aspectLocks.get(selected);
+  if(lock&&Math.abs(height-width/lock.ratio)>.5&&Math.abs(width-height*lock.ratio)>.5){status.textContent='Dimenzije moraju pratiti zaključani odnos stranica.';return}
+  if(resizeCrop(width,height))status.textContent='Dimenzije izabrane scene su primenjene.';
+};
+aspectRatio.onchange=()=>{$('#customAspect').hidden=aspectRatio.value!=='custom'};
+aspectBtn.onclick=()=>{
+  if(!img||exporting)return;
+  const preset=aspectRatio.value;
+  if(preset==='free'){aspectLocks.delete(selected);status.textContent='Odnos stranica je otključan.';return}
+  const [width,height]=preset==='custom'?[Number(aspectWidth.value),Number(aspectHeight.value)]:preset.split(':').map(Number);
+  const ratio=width/height;
+  if(!Number.isFinite(ratio)||width<=0||height<=0){status.textContent='Unesi pozitivan odnos širine i visine.';return}
+  const c=crops[selected],w=Math.round(Math.min(c.x1-c.x0,img.naturalWidth,img.naturalHeight*ratio)),h=Math.round(w/ratio);
+  if(resizeCrop(w,h)){
+    aspectLocks.set(selected,{ratio,width,height,preset});syncAspect();
+    status.textContent=`Odnos ${width}:${height} je zaključan za scenu ${selected+1}.`;
+  }
+};
+function resizeLocked(p,handle){
+  const c=crops[selected],ratio=aspectLocks.get(selected).ratio,min=minimumCropSize();
+  const horizontal=handle.includes('l')||handle.includes('r'),vertical=handle.includes('t')||handle.includes('b');
+  const left=handle.includes('l'),top=handle.includes('t');
+  const ax=horizontal?(left?c.x1:c.x0):(c.x0+c.x1)/2;
+  const ay=vertical?(top?c.y1:c.y0):(c.y0+c.y1)/2;
+  const maxW=horizontal?(left?ax:img.naturalWidth-ax):2*Math.min(ax,img.naturalWidth-ax);
+  const maxH=vertical?(top?ay:img.naturalHeight-ay):2*Math.min(ay,img.naturalHeight-ay);
+  let width=horizontal?(left?ax-p.x:p.x-ax):(top?ay-p.y:p.y-ay)*ratio;
+  if(horizontal&&vertical){
+    const fromY=(top?ay-p.y:p.y-ay)*ratio;
+    if(Math.abs(fromY-(c.x1-c.x0))>Math.abs(width-(c.x1-c.x0)))width=fromY;
+  }
+  const maximum=Math.min(maxW,maxH*ratio),minimum=Math.max(min,min*ratio);
+  if(maximum<minimum)return;
+  width=Math.max(minimum,Math.min(maximum,width));const height=width/ratio;
+  c.x0=Math.round(horizontal?(left?ax-width:ax):ax-width/2);c.x1=Math.round(horizontal?(left?ax:ax+width):ax+width/2);
+  c.y0=Math.round(vertical?(top?ay-height:ay):ay-height/2);c.y1=Math.round(vertical?(top?ay:ay+height):ay+height/2);
+}
+viewer.ondblclick=e=>{
+  if(!img||exporting)return;
+  const i=sceneAt(pt(e));if(i>=0)select(i,true);
+};
 
 function draw(){
   if(!img)return;
-  ctx.clearRect(0,0,cv.width,cv.height);ctx.drawImage(img,0,0);
-  ctx.save();
-  for(let i=0;i<crops.length;i++){
-    const c=crops[i];
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.save();ctx.translate(canvasOffset,canvasOffset);ctx.drawImage(img,0,0);
+  for(const i of [...crops.keys()].filter(i=>i!==selected).concat(selected)){
+    if(i!==selected&&!showBoundaries)continue;
+    const c=crops[i];if(!c)continue;
     const pixelsPerScreenPixel=cv.width/cv.getBoundingClientRect().width;
     ctx.lineWidth=(i===selected?4:2)*pixelsPerScreenPixel;
-    ctx.strokeStyle=i===selected?'#ffd400':'rgba(0,255,102,.45)';
+    ctx.strokeStyle=i===selected?'#ffd400':'rgba(255,255,255,.85)';
     ctx.shadowColor=i===selected?'rgba(0,0,0,.9)':'transparent';
     ctx.shadowBlur=i===selected?8:0;
     ctx.strokeRect(c.x0,c.y0,c.x1-c.x0,c.y1-c.y0);
   }
   const c=crops[selected];
   if(c){
+    syncDimensions();
     $('#cropInfo').textContent=`Original: x=${c.x0}, y=${c.y0}, širina=${c.x1-c.x0}, visina=${c.y1-c.y0} px`;
     const s=13*cv.width/cv.getBoundingClientRect().width;ctx.fillStyle='#ffd400';
     for(const [x,y] of [[c.x0,c.y0],[c.x1,c.y0],[c.x0,c.y1],[c.x1,c.y1],[(c.x0+c.x1)/2,c.y0],[(c.x0+c.x1)/2,c.y1],[c.x0,(c.y0+c.y1)/2],[c.x1,(c.y0+c.y1)/2]]){ctx.beginPath();ctx.arc(x,y,s,0,Math.PI*2);ctx.fill()}
@@ -179,15 +320,15 @@ function focusScene(){
   const c=crops[selected],r=viewer.getBoundingClientRect();if(!c)return;
   const baseW=r.width,baseH=baseW*cv.height/cv.width;
   const sw=(c.x1-c.x0)/cv.width*baseW,sh=(c.y1-c.y0)/cv.height*baseH;
-  const target=Math.min(5,Math.max(1,Math.min(r.width/sw,Math.max(300,r.height)/sh)*.8));
-  zoom=target;
-  const cx=(c.x0+c.x1)/2/cv.width*baseW,cy=(c.y0+c.y1)/2/cv.height*baseH;
+  const margin=Math.min(48,r.width*.1,r.height*.1);
+  zoom=Math.min(6,Math.max(1,Math.min((r.width-2*margin)/sw,(r.height-2*margin)/sh)));
+  const cx=(canvasOffset+(c.x0+c.x1)/2)/cv.width*baseW,cy=(canvasOffset+(c.y0+c.y1)/2)/cv.height*baseH;
   panX=r.width/2-cx*zoom;panY=r.height/2-cy*zoom;
   zoomEl.value=Math.round(zoom*100);resetZoom.textContent=Math.round(zoom*100)+'%';applyTransform();
 }
 function pt(e){
   const r=cv.getBoundingClientRect();
-  return{x:(e.clientX-r.left)/r.width*cv.width,y:(e.clientY-r.top)/r.height*cv.height};
+  return{x:(e.clientX-r.left)/r.width*cv.width-canvasOffset,y:(e.clientY-r.top)/r.height*cv.height-canvasOffset};
 }
 function sceneAt(p){
   for(let i=0;i<crops.length;i++){const c=crops[i];if(p.x>=c.x0&&p.x<=c.x1&&p.y>=c.y0&&p.y<=c.y1)return i}
@@ -232,11 +373,13 @@ viewer.onpointermove=e=>{
     return;
   }
   if(drag.type!=='edge')return;
-  const p=pt(e),c=crops[selected],min=Math.min(40,Math.max(1,Math.floor(Math.min(cv.width,cv.height)/100))),h=drag.h;
+  const p=pt(e),c=crops[selected],min=minimumCropSize(),h=drag.h;
+  if(aspectLocks.has(selected)){resizeLocked(p,h)}else{
   if(h.includes('l'))c.x0=Math.round(Math.max(0,Math.min(c.x1-min,p.x)));
-  if(h.includes('r'))c.x1=Math.round(Math.min(cv.width,Math.max(c.x0+min,p.x)));
+  if(h.includes('r'))c.x1=Math.round(Math.min(img.naturalWidth,Math.max(c.x0+min,p.x)));
   if(h.includes('t'))c.y0=Math.round(Math.max(0,Math.min(c.y1-min,p.y)));
-  if(h.includes('b'))c.y1=Math.round(Math.min(cv.height,Math.max(c.y0+min,p.y)));
+  if(h.includes('b'))c.y1=Math.round(Math.min(img.naturalHeight,Math.max(c.y0+min,p.y)));
+  }
   dirty.add(selected);draw();updateCard(selected);
 };
 function end(e){
@@ -250,7 +393,7 @@ window.addEventListener('resize',()=>{if(img)resetView()});
 
 function setBusy(busy){
   exporting=busy;drag=null;pinch=null;pointers.clear();
-  [file,detectBtn,splitBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,exportSize,...grid.querySelectorAll('button')].forEach(x=>x.disabled=busy);
+  [file,detectBtn,splitBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls,exportSize,...grid.querySelectorAll('button')].forEach(x=>x.disabled=busy);
   updateUI();
 }
 function cropCanvas(c){

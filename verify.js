@@ -6,6 +6,7 @@ const html = fs.readFileSync(__dirname + '/index.html', 'utf8');
 const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 const elements = new Map();
 const drawCalls = [];
+const strokeCalls = [];
 function canvas() {
   const element = {
     width: 0, height: 0,
@@ -14,7 +15,8 @@ function canvas() {
     getContext: () => ({
       drawImage: (...args) => drawCalls.push(args),
       fillRect: () => {},
-      strokeRect: () => {},
+      strokeRect: (...args) => strokeCalls.push(args),
+      translate: () => {},
       clearRect: () => {},
       save: () => {},
       restore: () => {},
@@ -27,7 +29,7 @@ function canvas() {
 }
 const document = {
   querySelector(selector) {
-    if (!elements.has(selector)) elements.set(selector, selector === '#preview' ? canvas() : {style: {}, disabled: true, children: [], querySelectorAll:()=>[], getBoundingClientRect:()=>({left:0,top:0,width:400,height:400}),setPointerCapture:()=>{}});
+    if (!elements.has(selector)) elements.set(selector, selector === '#preview' ? canvas() : {style: {}, disabled: true, children: [], querySelectorAll:()=>[], getBoundingClientRect:()=>({left:0,top:0,width:400,height:400}),setPointerCapture:()=>{},setAttribute:()=>{}});
     return elements.get(selector);
   },
   createElement(tag) { return tag === 'canvas' ? canvas() : {style: {}}; }
@@ -114,7 +116,7 @@ console.log('edge priority, touch selection, independent drag, interrupted gestu
   let pending;
   handlers.install({waitUntil:p=>pending=p});await pending;
   handlers.activate({waitUntil:p=>pending=p});await pending;
-  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3']);
+  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4']);
   let response,background;
   handlers.fetch({request:{method:'GET',url:'https://neske89.github.io/scene-splitter/',mode:'navigate'},respondWith:p=>response=p,waitUntil:p=>background=p});
   assert((await response).ok);await background;assert.deepStrictEqual(stored,['./index.html']);
@@ -127,3 +129,94 @@ console.log('edge priority, touch selection, independent drag, interrupted gestu
   assert.strictEqual(intercepted,false);
   console.log('service worker install, scoped old-cache cleanup, navigation refresh and offline fallback: OK');
 })().catch(error=>{console.error(error);process.exitCode=1});
+
+// Padded preview coordinates still address original image pixels.
+vm.runInContext('canvasOffset=40;cv.width=cv.height=880',context);
+assert.strictEqual(vm.runInContext('pt({clientX:200,clientY:200}).x',context),400);
+assert.strictEqual(vm.runInContext('pt({clientX:200,clientY:200}).y',context),400);
+// Focus every crop, including all corners, inside a short landscape viewport.
+viewer.getBoundingClientRect=()=>({left:0,top:0,width:400,height:180});
+for(let i=0;i<16;i++){
+  vm.runInContext(`selected=${i};focusScene()`,context);
+  const bounds=vm.runInContext('({left:panX+(canvasOffset+crops[selected].x0)/cv.width*400*zoom,right:panX+(canvasOffset+crops[selected].x1)/cv.width*400*zoom,top:panY+(canvasOffset+crops[selected].y0)/cv.width*400*zoom,bottom:panY+(canvasOffset+crops[selected].y1)/cv.width*400*zoom})',context);
+  assert(bounds.left>=18-1e-8&&bounds.right<=382+1e-8);
+  assert(bounds.top>=18-1e-8&&bounds.bottom<=162+1e-8);
+}
+vm.runInContext('selected=0;showBoundaries=false',context);
+let count=strokeCalls.length;
+vm.runInContext('draw()',context);
+assert.strictEqual(strokeCalls.length-count,1);
+elements.get('#boundaries').onclick();
+count=strokeCalls.length;
+vm.runInContext('draw()',context);
+assert.strictEqual(strokeCalls.length-count,16);
+assert.strictEqual(vm.runInContext('showBoundaries',context),true);
+// Double click selects the scene under the pointer and centers it.
+viewer.ondblclick({clientX:310,clientY:310});
+assert.strictEqual(vm.runInContext('selected',context),15);
+// Every edge copies the matching coordinate from the reference, independently.
+for(const edge of ['x0','x1','y0','y1']){
+  vm.runInContext('selected=0;crops[0]={x0:10,y0:10,x1:190,y1:190};crops[1]={x0:20,y0:30,x1:180,y1:170}',context);
+  elements.get('#alignScene').value='1';elements.get('#alignEdge').value=edge;
+  elements.get('#align').onclick();
+  assert.strictEqual(vm.runInContext(`crops[0].${edge}===crops[1].${edge}`,context),true);
+  assert.strictEqual(vm.runInContext('JSON.stringify(crops[1])',context),'{"x0":20,"y0":30,"x1":180,"y1":170}');
+}
+vm.runInContext('crops[0]={x0:10,y0:10,x1:190,y1:190};crops[1].x0=300',context);
+elements.get('#alignEdge').value='x0';elements.get('#align').onclick();
+assert.strictEqual(vm.runInContext('crops[0].x0',context),10);
+vm.runInContext('setBusy(true)',context);
+assert.strictEqual(elements.get('#align').disabled,true);
+assert.strictEqual(elements.get('#boundaries').disabled,true);
+console.log('padded coordinates, corner focus, double click, boundary visibility, all four alignments and invalid alignment: OK');
+
+vm.runInContext('setBusy(false);selected=0;aspectLocks.clear();crops[0]={x0:700,y0:700,x1:800,y1:800}',context);
+elements.get('#cropWidth').value='300';elements.get('#cropHeight').value='200';
+elements.get('#applyDimensions').onclick();
+assert.strictEqual(vm.runInContext('JSON.stringify(crops[0])',context),'{"x0":500,"y0":600,"x1":800,"y1":800}');
+const unchanged=vm.runInContext('JSON.stringify(crops[0])',context);
+for(const invalid of ['801','0','NaN','25.5']){
+  elements.get('#cropWidth').value=invalid;elements.get('#applyDimensions').onclick();
+  assert.strictEqual(vm.runInContext('JSON.stringify(crops[0])',context),unchanged);
+}
+elements.get('#aspectRatio').value='16:9';elements.get('#applyAspect').onclick();
+assert.strictEqual(vm.runInContext('aspectLocks.get(0).ratio',context),16/9);
+elements.get('#cropWidth').value='320';elements.get('#cropWidth').oninput();
+assert.strictEqual(elements.get('#cropHeight').value,180);
+elements.get('#applyDimensions').onclick();
+assert.strictEqual(vm.runInContext('crops[0].x1-crops[0].x0',context),320);
+assert.strictEqual(vm.runInContext('crops[0].y1-crops[0].y0',context),180);
+// Locked dragging in every direction stays within the source and retains ratio.
+for(const handle of ['l','r','t','b','lt','rt','lb','rb']){
+  vm.runInContext('crops[0]={x0:200,y0:200,x1:520,y1:380}',context);
+  for(const [x,y] of [[-500,-500],[1300,1300],[300,300]]){
+    vm.runInContext(`resizeLocked({x:${x},y:${y}},'${handle}')`,context);
+    const c=vm.runInContext('crops[0]',context),w=c.x1-c.x0,h=c.y1-c.y0;
+    assert(c.x0>=0&&c.y0>=0&&c.x1<=800&&c.y1<=800);
+    assert(w>=8&&h>=8);
+    assert(Math.abs(w-h*16/9)<=2);
+  }
+}
+vm.runInContext('crops[0]={x0:200,y0:200,x1:520,y1:380};crops[1]={x0:210,y0:220,x1:550,y1:400}',context);
+elements.get('#alignScene').value='1';elements.get('#alignEdge').value='y0';elements.get('#align').onclick();
+assert.strictEqual(vm.runInContext('crops[0].y0',context),220);
+assert.strictEqual(vm.runInContext('crops[0].y1-crops[0].y0',context),180);
+vm.runInContext('select(1)',context);
+assert.strictEqual(elements.get('#aspectRatio').value,'free');
+vm.runInContext('select(0)',context);
+assert.strictEqual(elements.get('#aspectRatio').value,'16:9');
+elements.get('#aspectRatio').value='custom';elements.get('#aspectRatio').onchange();
+assert.strictEqual(elements.get('#customAspect').hidden,false);
+elements.get('#aspectWidth').value='2';elements.get('#aspectHeight').value='3';elements.get('#applyAspect').onclick();
+assert.strictEqual(vm.runInContext('aspectLocks.get(0).ratio',context),2/3);
+elements.get('#aspectHeight').value='0';elements.get('#applyAspect').onclick();
+assert.strictEqual(vm.runInContext('aspectLocks.get(0).ratio',context),2/3);
+elements.get('#aspectRatio').value='free';elements.get('#applyAspect').onclick();
+assert.strictEqual(vm.runInContext('aspectLocks.has(0)',context),false);
+vm.runInContext('setBusy(true)',context);
+assert.strictEqual(elements.get('#cropWidth').disabled,true);
+assert.strictEqual(elements.get('#applyAspect').disabled,true);
+console.log('manual dimensions, image limits, per-scene presets and custom ratio, locked edge/corner dragging, alignment and export lock: OK');
+
+// A freshly loaded image can be drawn before detection creates its crops.
+vm.runInContext('crops=[];draw()',context);
