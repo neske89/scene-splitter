@@ -1,51 +1,271 @@
 <!doctype html>
 <html lang="sr">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=yes">
-<title>Scene Splitter</title><meta name="theme-color" content="#111111"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Scene Splitter"><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="icon-192.png">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=yes">
+<title>Scene Splitter</title>
+<meta name="theme-color" content="#111111">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Scene Splitter">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
-:root{font-family:system-ui,-apple-system,sans-serif;color-scheme:light dark}body{max-width:900px;margin:auto;padding:16px}h1{font-size:22px}.controls{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}button,input::file-selector-button{padding:10px 14px;border:0;border-radius:10px;font-weight:600}canvas{display:block;width:100%;height:auto;background:#222}.viewer{overflow:hidden;border-radius:10px;background:#222;touch-action:none}.stage{transform-origin:0 0}.zoomrow{display:grid;grid-template-columns:44px 1fr 44px auto;gap:8px;align-items:center;margin:10px 0}.zoomrow input{width:100%}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:16px}.card img{width:100%;display:block;border-radius:8px}.card a{display:block;text-align:center;padding:8px}.hint{opacity:.75;font-size:14px}.status{margin:10px 0;font-weight:600}@media(min-width:700px){.grid{grid-template-columns:repeat(4,1fr)}}</style>
-</head><body>
+:root{font-family:system-ui,-apple-system,sans-serif;color-scheme:light dark}
+*{box-sizing:border-box}
+body{max-width:900px;margin:auto;padding:16px}
+h1{font-size:22px}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+button,input::file-selector-button{padding:10px 14px;border:0;border-radius:10px;font-weight:600}
+.primary{background:#1677ff;color:#fff}
+.scene-nav{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin:10px 0}
+.scene-nav button:last-child{justify-self:end}
+.badge{font-weight:800;text-align:center}
+canvas{display:block;width:100%;height:auto;background:#222}
+.viewer{overflow:hidden;border-radius:10px;background:#222;touch-action:none;min-height:100px}
+.stage{transform-origin:0 0}
+.zoomrow{display:grid;grid-template-columns:44px 1fr 44px auto;gap:8px;align-items:center;margin:10px 0}
+.zoomrow input{width:100%}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:16px}
+.card{border:2px solid transparent;border-radius:10px;padding:3px}
+.card.selected{border-color:#ffd400}
+.card img{width:100%;display:block;border-radius:8px}
+.card a,.card button{display:block;text-align:center;width:100%;padding:8px}
+.hint{opacity:.78;font-size:14px}
+.status{margin:10px 0;font-weight:600}
+@media(min-width:700px){.grid{grid-template-columns:repeat(4,1fr)}}
+</style>
+</head>
+<body>
 <h1>4×4 Scene Splitter</h1>
-<p class="hint">Izaberi kompozitnu sliku. Alat traži svetle separatore blizu 25%, 50% i 75% širine/visine, pa seče po stvarnim koordinatama.</p>
+<p class="hint">Automatski pronalazi početnih 16 scena. Zatim izaberi scenu i pomeri njene ivice nezavisno od ostalih scena.</p>
 <input id="file" type="file" accept="image/*">
-<div class="controls"><button id="detect" disabled>Ponovo detektuj</button><button id="split" disabled>Iseci 16 scena</button><button id="zip" disabled>Preuzmi ZIP</button></div>
-<div class="zoomrow"><button id="minus" disabled>−</button><input id="zoom" type="range" min="100" max="500" step="10" value="100" disabled><button id="plus" disabled>+</button><button id="resetZoom" disabled>100%</button></div>
-<p class="hint">Prevuci zelenu liniju prstom da koriguješ rez. Pinch ili +/− za zoom; kada si zumiran, prevuci van linije da pomeraš sliku.</p>
-<div id="status" class="status"></div><div id="viewer" class="viewer"><div id="stage" class="stage"><canvas id="preview"></canvas></div></div><div id="grid" class="grid"></div>
+<div class="controls">
+  <button id="detect" disabled>Ponovo detektuj</button>
+  <button id="split" disabled>Prikaži 16 scena</button>
+  <button id="zip" disabled class="primary">Preuzmi ZIP</button>
+</div>
+<div class="scene-nav">
+  <button id="prev" disabled>‹ Prethodna</button>
+  <span id="sceneLabel" class="badge">Scena —</span>
+  <button id="next" disabled>Sledeća ›</button>
+</div>
+<div class="zoomrow">
+  <button id="minus" disabled>−</button>
+  <input id="zoom" type="range" min="100" max="600" step="10" value="100" disabled>
+  <button id="plus" disabled>+</button>
+  <button id="resetZoom" disabled>100%</button>
+</div>
+<p class="hint">Žuti okvir pripada samo izabranoj sceni. Prevuci ivicu ili ugao. Dodirni drugu scenu da je izabereš. Pinch ili +/− za zoom; pri zoom-u prevuci unutrašnjost za pomeranje prikaza.</p>
+<div id="status" class="status"></div>
+<div id="viewer" class="viewer"><div id="stage" class="stage"><canvas id="preview"></canvas></div></div>
+<div id="grid" class="grid"></div>
 <script>
-const file=document.querySelector('#file'), cv=document.querySelector('#preview'), ctx=cv.getContext('2d',{willReadFrequently:true});
-const detectBtn=document.querySelector('#detect'), splitBtn=document.querySelector('#split'), zipBtn=document.querySelector('#zip'), status=document.querySelector('#status'), grid=document.querySelector('#grid');
-const viewer=document.querySelector('#viewer'),stage=document.querySelector('#stage'),zoomEl=document.querySelector('#zoom'),plus=document.querySelector('#plus'),minus=document.querySelector('#minus'),resetZoom=document.querySelector('#resetZoom');
-let img=null, xs=[], ys=[], zoom=1, panX=0, panY=0, drag=null, pointers=new Map(), pinch=null;
-file.onchange=()=>{const f=file.files[0];if(!f)return;const u=URL.createObjectURL(f);img=new Image();img.onload=()=>{URL.revokeObjectURL(u);cv.width=img.naturalWidth;cv.height=img.naturalHeight;detect();detectBtn.disabled=splitBtn.disabled=zipBtn.disabled=false;zoomEl.disabled=plus.disabled=minus.disabled=resetZoom.disabled=false;setZoom(1)};img.src=u};
-detectBtn.onclick=detect; splitBtn.onclick=split;
-function whiteness(r,g,b){const mx=Math.max(r,g,b),mn=Math.min(r,g,b);return (r+g+b)/3 - (mx-mn)*1.3}
-function scoreLines(data,w,h,vertical){const n=vertical?w:h, other=vertical?h:w, scores=new Float32Array(n);const step=Math.max(1,Math.floor(other/300));for(let p=0;p<n;p++){let s=0,c=0;for(let q=0;q<other;q+=step){let x=vertical?p:q,y=vertical?q:p,i=(y*w+x)*4;s+=whiteness(data[i],data[i+1],data[i+2]);c++}scores[p]=s/c}return scores}
-function locate(scores,n){const out=[];for(const frac of [.25,.5,.75]){const center=Math.round(n*frac),rad=Math.round(n*.055);let best=center,bv=-1e9;for(let p=Math.max(1,center-rad);p<=Math.min(n-2,center+rad);p++){let v=(scores[p-1]+scores[p]+scores[p+1])/3;if(v>bv){bv=v;best=p}}// find bright band around peak
-let threshold=bv-18,l=best,r=best;while(l>1 && scores[l-1]>=threshold && best-l<14)l--;while(r<n-2 && scores[r+1]>=threshold && r-best<14)r++;out.push(Math.round((l+r)/2))}return out}
-function detect(){if(!img)return;ctx.drawImage(img,0,0);const d=ctx.getImageData(0,0,cv.width,cv.height).data;xs=locate(scoreLines(d,cv.width,cv.height,true),cv.width);ys=locate(scoreLines(d,cv.width,cv.height,false),cv.height);drawOverlay();status.textContent=`Vertikalno: ${xs.join(', ')} px · Horizontalno: ${ys.join(', ')} px`;grid.innerHTML=''}
-function drawOverlay(active=null){ctx.drawImage(img,0,0);ctx.save();ctx.lineWidth=Math.max(5,cv.width/260);ctx.shadowColor='rgba(0,0,0,.75)';ctx.shadowBlur=8;xs.forEach((x,i)=>{ctx.strokeStyle=active&&active.axis==='x'&&active.i===i?'#ffff00':'#00ff66';ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,cv.height);ctx.stroke()});ys.forEach((y,i)=>{ctx.strokeStyle=active&&active.axis==='y'&&active.i===i?'#ffff00':'#00ff66';ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(cv.width,y);ctx.stroke()});ctx.restore()}
+const $=s=>document.querySelector(s);
+const file=$('#file'),cv=$('#preview'),ctx=cv.getContext('2d',{willReadFrequently:true});
+const detectBtn=$('#detect'),splitBtn=$('#split'),zipBtn=$('#zip'),status=$('#status'),grid=$('#grid');
+const viewer=$('#viewer'),stage=$('#stage'),zoomEl=$('#zoom'),plus=$('#plus'),minus=$('#minus'),resetZoom=$('#resetZoom');
+const prev=$('#prev'),next=$('#next'),sceneLabel=$('#sceneLabel');
+let img=null,crops=[],selected=0,zoom=1,panX=0,panY=0,drag=null,pointers=new Map(),pinch=null;
+
+file.onchange=()=>{
+  const f=file.files[0]; if(!f)return;
+  const u=URL.createObjectURL(f); img=new Image();
+  img.onload=()=>{
+    URL.revokeObjectURL(u); cv.width=img.naturalWidth; cv.height=img.naturalHeight;
+    detect();
+    [detectBtn,splitBtn,zipBtn,zoomEl,plus,minus,resetZoom,prev,next].forEach(x=>x.disabled=false);
+    resetView(); updateUI();
+  };
+  img.src=u;
+};
+
+function whiteness(r,g,b){const mx=Math.max(r,g,b),mn=Math.min(r,g,b);return(r+g+b)/3-(mx-mn)*1.3}
+function scoreLines(data,w,h,vertical){
+  const n=vertical?w:h,other=vertical?h:w,scores=new Float32Array(n),step=Math.max(1,Math.floor(other/300));
+  for(let p=0;p<n;p++){let s=0,c=0;for(let q=0;q<other;q+=step){let x=vertical?p:q,y=vertical?q:p,i=(y*w+x)*4;s+=whiteness(data[i],data[i+1],data[i+2]);c++}scores[p]=s/c}
+  return scores;
+}
+function locate(scores,n){
+  const out=[];
+  for(const frac of [.25,.5,.75]){
+    const center=Math.round(n*frac),rad=Math.round(n*.055);let best=center,bv=-1e9;
+    for(let p=Math.max(1,center-rad);p<=Math.min(n-2,center+rad);p++){const v=(scores[p-1]+scores[p]+scores[p+1])/3;if(v>bv){bv=v;best=p}}
+    let threshold=bv-18,l=best,r=best;
+    while(l>1&&scores[l-1]>=threshold&&best-l<14)l--;
+    while(r<n-2&&scores[r+1]>=threshold&&r-best<14)r++;
+    out.push(Math.round((l+r)/2));
+  }
+  return out;
+}
+function detect(){
+  if(!img)return;
+  ctx.drawImage(img,0,0);
+  const d=ctx.getImageData(0,0,cv.width,cv.height).data;
+  const xs=locate(scoreLines(d,cv.width,cv.height,true),cv.width);
+  const ys=locate(scoreLines(d,cv.width,cv.height,false),cv.height);
+  const xb=[0,...xs,cv.width],yb=[0,...ys,cv.height];
+  crops=[];
+  for(let r=0;r<4;r++)for(let c=0;c<4;c++)crops.push({
+    x0:xb[c]+(c?3:0), x1:xb[c+1]-(c<3?3:0),
+    y0:yb[r]+(r?3:0), y1:yb[r+1]-(r<3?3:0)
+  });
+  selected=0; grid.innerHTML=''; draw(); updateUI();
+  status.textContent='Detektovano 16 scena. Izaberi scenu i koriguj njen okvir.';
+}
+detectBtn.onclick=detect;
+
+function updateUI(){
+  sceneLabel.textContent=img?'Scena '+(selected+1)+' / 16':'Scena —';
+  prev.disabled=!img||selected===0; next.disabled=!img||selected===15;
+}
+function select(i,focus=false){
+  selected=Math.max(0,Math.min(15,i)); draw(); updateUI(); markCards();
+  if(focus)focusScene();
+}
+prev.onclick=()=>select(selected-1,true);
+next.onclick=()=>select(selected+1,true);
+
+function draw(){
+  if(!img)return;
+  ctx.drawImage(img,0,0);
+  ctx.save();
+  for(let i=0;i<crops.length;i++){
+    const c=crops[i];
+    ctx.lineWidth=i===selected?Math.max(6,cv.width/240):Math.max(2,cv.width/700);
+    ctx.strokeStyle=i===selected?'#ffd400':'rgba(0,255,102,.45)';
+    ctx.shadowColor=i===selected?'rgba(0,0,0,.9)':'transparent';
+    ctx.shadowBlur=i===selected?8:0;
+    ctx.strokeRect(c.x0,c.y0,c.x1-c.x0,c.y1-c.y0);
+  }
+  const c=crops[selected];
+  if(c){
+    const s=Math.max(12,cv.width/120);ctx.fillStyle='#ffd400';
+    for(const [x,y] of [[c.x0,c.y0],[c.x1,c.y0],[c.x0,c.y1],[c.x1,c.y1]]){ctx.beginPath();ctx.arc(x,y,s,0,Math.PI*2);ctx.fill()}
+  }
+  ctx.restore();
+}
 function applyTransform(){stage.style.transform=`translate(${panX}px,${panY}px) scale(${zoom})`}
-function setZoom(v,ax=null,ay=null){const old=zoom;zoom=Math.max(1,Math.min(5,v));if(ax!==null&&old!==zoom){panX=ax-(ax-panX)*(zoom/old);panY=ay-(ay-panY)*(zoom/old)}zoomEl.value=Math.round(zoom*100);resetZoom.textContent=Math.round(zoom*100)+'%';applyTransform()}
-plus.onclick=()=>setZoom(zoom+.25);minus.onclick=()=>setZoom(zoom-.25);resetZoom.onclick=()=>{panX=panY=0;setZoom(1)};zoomEl.oninput=()=>setZoom(+zoomEl.value/100);
-function pt(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*cv.width,y:(e.clientY-r.top)/r.height*cv.height}}
-function hit(p){const r=cv.getBoundingClientRect(),sx=cv.width/r.width,sy=cv.height/r.height;let b=null;xs.forEach((x,i)=>{const d=Math.abs(p.x-x)/sx;if(d<30&&(!b||d<b.d))b={axis:'x',i,d}});ys.forEach((y,i)=>{const d=Math.abs(p.y-y)/sy;if(d<30&&(!b||d<b.d))b={axis:'y',i,d}});return b}
-viewer.onpointerdown=e=>{if(!img)return;viewer.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===2){const a=[...pointers.values()],r=viewer.getBoundingClientRect();pinch={d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),z:zoom,cx:(a[0].x+a[1].x)/2-r.left,cy:(a[0].y+a[1].y)/2-r.top};drag=null;return}const h=hit(pt(e));drag=h?{type:'line',...h}:{type:'pan',x:e.clientX,y:e.clientY,px:panX,py:panY};if(h)drawOverlay(h)}
-viewer.onpointermove=e=>{if(!pointers.has(e.pointerId))return;pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===2&&pinch){const a=[...pointers.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);setZoom(pinch.z*d/pinch.d,pinch.cx,pinch.cy);return}if(!drag)return;if(drag.type==='pan'){if(zoom>1){panX=drag.px+e.clientX-drag.x;panY=drag.py+e.clientY-drag.y;applyTransform()}return}const p=pt(e);if(drag.axis==='x'){const lo=drag.i?xs[drag.i-1]+20:20,hi=drag.i<2?xs[drag.i+1]-20:cv.width-20;xs[drag.i]=Math.round(Math.max(lo,Math.min(hi,p.x)))}else{const lo=drag.i?ys[drag.i-1]+20:20,hi=drag.i<2?ys[drag.i+1]-20:cv.height-20;ys[drag.i]=Math.round(Math.max(lo,Math.min(hi,p.y)))}drawOverlay(drag);status.textContent=`Vertikalno: ${xs.join(', ')} px · Horizontalno: ${ys.join(', ')} px`}
-function end(e){pointers.delete(e.pointerId);if(pointers.size<2)pinch=null;if(!pointers.size){drag=null;drawOverlay()}}
+function setZoom(v,ax=null,ay=null){
+  const old=zoom;zoom=Math.max(1,Math.min(6,v));
+  if(ax!==null&&old!==zoom){panX=ax-(ax-panX)*(zoom/old);panY=ay-(ay-panY)*(zoom/old)}
+  zoomEl.value=Math.round(zoom*100);resetZoom.textContent=Math.round(zoom*100)+'%';applyTransform();
+}
+function resetView(){panX=panY=0;setZoom(1)}
+plus.onclick=()=>setZoom(zoom+.25);minus.onclick=()=>setZoom(zoom-.25);resetZoom.onclick=resetView;zoomEl.oninput=()=>setZoom(+zoomEl.value/100);
+
+function focusScene(){
+  const c=crops[selected],r=viewer.getBoundingClientRect();
+  const baseW=r.width,baseH=baseW*cv.height/cv.width;
+  const sw=(c.x1-c.x0)/cv.width*baseW,sh=(c.y1-c.y0)/cv.height*baseH;
+  const target=Math.min(5,Math.max(1,Math.min(r.width/sw,Math.max(300,r.height)/sh)*.8));
+  zoom=target;
+  const cx=(c.x0+c.x1)/2/cv.width*baseW,cy=(c.y0+c.y1)/2/cv.height*baseH;
+  panX=r.width/2-cx*zoom;panY=Math.min(0,Math.max(300,r.height)/2-cy*zoom);
+  zoomEl.value=Math.round(zoom*100);resetZoom.textContent=Math.round(zoom*100)+'%';applyTransform();
+}
+function pt(e){
+  const r=cv.getBoundingClientRect();
+  return{x:(e.clientX-r.left)/r.width*cv.width,y:(e.clientY-r.top)/r.height*cv.height};
+}
+function sceneAt(p){
+  for(let i=0;i<crops.length;i++){const c=crops[i];if(p.x>=c.x0&&p.x<=c.x1&&p.y>=c.y0&&p.y<=c.y1)return i}
+  return-1;
+}
+function hit(p){
+  const c=crops[selected],r=cv.getBoundingClientRect(),tx=38*cv.width/r.width,ty=38*cv.height/r.height;
+  const near=(a,b,t)=>Math.abs(a-b)<=t;
+  const L=near(p.x,c.x0,tx),R=near(p.x,c.x1,tx),T=near(p.y,c.y0,ty),B=near(p.y,c.y1,ty);
+  const insideX=p.x>=c.x0-tx&&p.x<=c.x1+tx,insideY=p.y>=c.y0-ty&&p.y<=c.y1+ty;
+  if(L&&T)return'lt';if(R&&T)return'rt';if(L&&B)return'lb';if(R&&B)return'rb';
+  if(L&&insideY)return'l';if(R&&insideY)return'r';if(T&&insideX)return't';if(B&&insideX)return'b';
+  return null;
+}
+viewer.onpointerdown=e=>{
+  if(!img)return;
+  viewer.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pointers.size===2){
+    const a=[...pointers.values()],r=viewer.getBoundingClientRect();
+    pinch={d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),z:zoom,cx:(a[0].x+a[1].x)/2-r.left,cy:(a[0].y+a[1].y)/2-r.top};drag=null;return;
+  }
+  const p=pt(e),h=hit(p);
+  if(h){drag={type:'edge',h};return}
+  const si=sceneAt(p);
+  if(si>=0&&si!==selected){select(si);drag={type:'tap'};return}
+  drag={type:'pan',x:e.clientX,y:e.clientY,px:panX,py:panY};
+};
+viewer.onpointermove=e=>{
+  if(!pointers.has(e.pointerId))return;
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pointers.size===2&&pinch){
+    const a=[...pointers.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
+    setZoom(pinch.z*d/pinch.d,pinch.cx,pinch.cy);return;
+  }
+  if(!drag)return;
+  if(drag.type==='pan'){
+    if(zoom>1){panX=drag.px+e.clientX-drag.x;panY=drag.py+e.clientY-drag.y;applyTransform()}
+    return;
+  }
+  if(drag.type!=='edge')return;
+  const p=pt(e),c=crops[selected],min=Math.max(40,Math.min(cv.width,cv.height)*.04),h=drag.h;
+  if(h.includes('l'))c.x0=Math.round(Math.max(0,Math.min(c.x1-min,p.x)));
+  if(h.includes('r'))c.x1=Math.round(Math.min(cv.width,Math.max(c.x0+min,p.x)));
+  if(h.includes('t'))c.y0=Math.round(Math.max(0,Math.min(c.y1-min,p.y)));
+  if(h.includes('b'))c.y1=Math.round(Math.min(cv.height,Math.max(c.y0+min,p.y)));
+  draw();
+};
+function end(e){pointers.delete(e.pointerId);if(pointers.size<2)pinch=null;if(!pointers.size){drag=null;draw()}}
 viewer.onpointerup=end;viewer.onpointercancel=end;
 
-function crc32(a){let c=0xffffffff;for(const b of a){c^=b;for(let j=0;j<8;j++)c=(c>>>1)^((c&1)?0xedb88320:0)}return(c^0xffffffff)>>>0}
-const u16=n=>new Uint8Array([n&255,n>>>8&255]);
-const u32=n=>new Uint8Array([n&255,n>>>8&255,n>>>16&255,n>>>24&255]);
-function cat(ps){let n=ps.reduce((s,p)=>s+p.length,0),o=new Uint8Array(n),i=0;for(const p of ps){o.set(p,i);i+=p.length}return o}
-function zipBlob(files){const e=new TextEncoder(),ls=[],cs=[];let off=0;for(const f of files){const n=e.encode(f.name),d=f.data,c=crc32(d);const l=cat([u32(0x04034b50),u16(20),u16(0),u16(0),u16(0),u16(0),u32(c),u32(d.length),u32(d.length),u16(n.length),u16(0),n,d]);ls.push(l);cs.push(cat([u32(0x02014b50),u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),u32(c),u32(d.length),u32(d.length),u16(n.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(off),n]));off+=l.length}const cd=cat(cs),end=cat([u32(0x06054b50),u16(0),u16(0),u16(files.length),u16(files.length),u32(cd.length),u32(off),u16(0)]);return new Blob([...ls,cd,end],{type:'application/zip'})}
-function jpegBytes(c){return new Promise((ok,no)=>c.toBlob(async b=>b?ok(new Uint8Array(await b.arrayBuffer())):no(Error('JPEG export nije uspeo')),'image/jpeg',.96))}
-async function makeFiles(){const fs=[],xb=[0,...xs,cv.width],yb=[0,...ys,cv.height];let k=1;for(let r=0;r<4;r++)for(let c=0;c<4;c++){let x0=xb[c]+(c?3:0),x1=xb[c+1]-(c<3?3:0),y0=yb[r]+(r?3:0),y1=yb[r+1]-(r<3?3:0),w=Math.max(1,x1-x0),h=Math.max(1,y1-y0),o=document.createElement('canvas');o.width=w;o.height=h;o.getContext('2d').drawImage(img,x0,y0,w,h,0,0,w,h);fs.push({name:`scene-${String(k++).padStart(2,'0')}.jpg`,data:await jpegBytes(o)})}return fs}
-zipBtn.onclick=async()=>{try{zipBtn.disabled=true;zipBtn.textContent='Pravim ZIP…';status.textContent='Pripremam 16 scena…';const b=zipBlob(await makeFiles()),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download='16-scenes.zip';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),30000);status.textContent='ZIP sa 16 scena je napravljen.'}catch(e){status.textContent='Greška: '+e.message}finally{zipBtn.disabled=false;zipBtn.textContent='Preuzmi ZIP'}};
+function cropCanvas(c){
+  const w=Math.max(1,Math.round(c.x1-c.x0)),h=Math.max(1,Math.round(c.y1-c.y0)),o=document.createElement('canvas');
+  o.width=w;o.height=h;o.getContext('2d').drawImage(img,c.x0,c.y0,w,h,0,0,w,h);return o;
+}
+function split(){
+  grid.innerHTML='';
+  crops.forEach((c,i)=>{
+    const out=cropCanvas(c),url=out.toDataURL('image/jpeg',.96),card=document.createElement('div');
+    card.className='card'+(i===selected?' selected':'');card.dataset.i=i;
+    const im=document.createElement('img');im.src=url;im.onclick=()=>select(i,true);
+    const b=document.createElement('button');b.textContent='Uredi scenu '+(i+1);b.onclick=()=>select(i,true);
+    const a=document.createElement('a');a.href=url;a.download='scene-'+String(i+1).padStart(2,'0')+'.jpg';a.textContent='Preuzmi';
+    card.append(im,b,a);grid.append(card);
+  });
+  status.textContent='Prikazano 16 scena. Dodirni sliku ili „Uredi” za preciznu korekciju.';
+}
+splitBtn.onclick=split;
+function markCards(){grid.querySelectorAll('.card').forEach((x,i)=>x.classList.toggle('selected',i===selected))}
 
-function split(){grid.innerHTML='';const xb=[0,...xs,cv.width],yb=[0,...ys,cv.height];let k=1;for(let r=0;r<4;r++)for(let c=0;c<4;c++){// trim separator/outer-edge pixels slightly
-let x0=xb[c]+(c?3:0), x1=xb[c+1]-(c<3?3:0), y0=yb[r]+(r?3:0), y1=yb[r+1]-(r<3?3:0);let w=x1-x0,h=y1-y0;const out=document.createElement('canvas');out.width=w;out.height=h;out.getContext('2d').drawImage(img,x0,y0,w,h,0,0,w,h);const url=out.toDataURL('image/jpeg',.95);const card=document.createElement('div');card.className='card';const im=document.createElement('img');im.src=url;const a=document.createElement('a');a.href=url;a.download=`scene-${String(k).padStart(2,'0')}.jpg`;a.textContent=`Preuzmi scenu ${k}`;card.append(im,a);grid.append(card);k++}status.textContent='Isečeno 16 scena. Dodirni „Preuzmi scenu” za željenu sliku.'}
-if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
-</script></body></html>
+function crc32(a){let c=0xffffffff;for(const b of a){c^=b;for(let j=0;j<8;j++)c=(c>>>1)^((c&1)?0xedb88320:0)}return(c^0xffffffff)>>>0}
+const u16=n=>new Uint8Array([n&255,n>>>8&255]),u32=n=>new Uint8Array([n&255,n>>>8&255,n>>>16&255,n>>>24&255]);
+function cat(ps){let n=ps.reduce((s,p)=>s+p.length,0),o=new Uint8Array(n),i=0;for(const p of ps){o.set(p,i);i+=p.length}return o}
+function zipBlob(files){
+  const e=new TextEncoder(),ls=[],cs=[];let off=0;
+  for(const f of files){
+    const n=e.encode(f.name),d=f.data,c=crc32(d);
+    const l=cat([u32(0x04034b50),u16(20),u16(0),u16(0),u16(0),u16(0),u32(c),u32(d.length),u32(d.length),u16(n.length),u16(0),n,d]);
+    ls.push(l);
+    cs.push(cat([u32(0x02014b50),u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),u32(c),u32(d.length),u32(d.length),u16(n.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(off),n]));
+    off+=l.length;
+  }
+  const cd=cat(cs),end=cat([u32(0x06054b50),u16(0),u16(0),u16(files.length),u16(files.length),u32(cd.length),u32(off),u16(0)]);
+  return new Blob([...ls,cd,end],{type:'application/zip'});
+}
+function jpegBytes(c){return new Promise((ok,no)=>c.toBlob(async b=>b?ok(new Uint8Array(await b.arrayBuffer())):no(Error('JPEG export nije uspeo')),'image/jpeg',.96))}
+async function makeFiles(){
+  const fs=[];
+  for(let i=0;i<16;i++)fs.push({name:'scene-'+String(i+1).padStart(2,'0')+'.jpg',data:await jpegBytes(cropCanvas(crops[i]))});
+  return fs;
+}
+zipBtn.onclick=async()=>{
+  try{
+    zipBtn.disabled=true;zipBtn.textContent='Pravim ZIP…';status.textContent='Pripremam 16 individualnih cropova…';
+    const b=zipBlob(await makeFiles()),u=URL.createObjectURL(b),a=document.createElement('a');
+    a.href=u;a.download='16-scenes.zip';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),30000);
+    status.textContent='ZIP sa 16 scena je napravljen.';
+  }catch(e){status.textContent='Greška: '+e.message}
+  finally{zipBtn.disabled=false;zipBtn.textContent='Preuzmi ZIP'}
+};
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+</script>
+</body></html>
