@@ -33,6 +33,8 @@ canvas{display:block;width:100%;height:auto;background:#222}
 .card a,.card button{display:block;text-align:center;width:100%;padding:8px}
 .hint{opacity:.78;font-size:14px}
 .status{margin:10px 0;font-weight:600}
+.export-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0}
+.export-row select{font:inherit;padding:10px;border-radius:10px;max-width:100%}
 @media(min-width:700px){.grid{grid-template-columns:repeat(4,1fr)}}
 </style>
 </head>
@@ -50,14 +52,26 @@ canvas{display:block;width:100%;height:auto;background:#222}
   <span id="sceneLabel" class="badge">Scena —</span>
   <button id="next" disabled>Sledeća ›</button>
 </div>
+<button id="focus" disabled>Fokusiraj izabranu scenu</button>
 <div class="zoomrow">
   <button id="minus" disabled>−</button>
   <input id="zoom" type="range" min="100" max="600" step="10" value="100" disabled>
   <button id="plus" disabled>+</button>
   <button id="resetZoom" disabled>100%</button>
 </div>
+<div class="export-row">
+  <label for="exportSize">Veličina izvoza</label>
+  <select id="exportSize">
+    <option value="original">Original</option>
+    <option value="2048">2048 × 2048 px</option>
+    <option value="3072">3072 × 3072 px</option>
+    <option value="4096">4096 × 4096 px</option>
+  </select>
+</div>
+<p class="hint">Kvadratni izvoz čuva celu scenu bez rastezanja; ako okvir nije kvadrat, preostali prostor je beo. Za štampu 17 × 17 cm, 2048 px daje oko 306 dpi. Uvećanje ne dodaje nove detalje.</p>
 <p class="hint">Žuti okvir pripada samo izabranoj sceni. Prevuci ivicu ili ugao. Dodirni drugu scenu da je izabereš. Pinch ili +/− za zoom; pri zoom-u prevuci unutrašnjost za pomeranje prikaza.</p>
-<div id="status" class="status"></div>
+<div id="status" class="status" role="status" aria-live="polite"></div>
+<p id="cropInfo" class="hint"></p>
 <div id="viewer" class="viewer"><div id="stage" class="stage"><canvas id="preview"></canvas></div></div>
 <div id="grid" class="grid"></div>
 <script>
@@ -65,19 +79,22 @@ const $=s=>document.querySelector(s);
 const file=$('#file'),cv=$('#preview'),ctx=cv.getContext('2d',{willReadFrequently:true});
 const detectBtn=$('#detect'),splitBtn=$('#split'),zipBtn=$('#zip'),status=$('#status'),grid=$('#grid');
 const viewer=$('#viewer'),stage=$('#stage'),zoomEl=$('#zoom'),plus=$('#plus'),minus=$('#minus'),resetZoom=$('#resetZoom');
-const prev=$('#prev'),next=$('#next'),sceneLabel=$('#sceneLabel');
-let img=null,crops=[],selected=0,zoom=1,panX=0,panY=0,drag=null,pointers=new Map(),pinch=null;
+const prev=$('#prev'),next=$('#next'),focusBtn=$('#focus'),sceneLabel=$('#sceneLabel'),exportSize=$('#exportSize');
+let img=null,crops=[],selected=0,zoom=1,panX=0,panY=0,drag=null,pointers=new Map(),pinch=null,dirty=new Set(),loadId=0,exporting=false;
 
 file.onchange=()=>{
   const f=file.files[0]; if(!f)return;
-  const u=URL.createObjectURL(f); img=new Image();
-  img.onload=()=>{
-    URL.revokeObjectURL(u); cv.width=img.naturalWidth; cv.height=img.naturalHeight;
-    detect();
-    [detectBtn,splitBtn,zipBtn,zoomEl,plus,minus,resetZoom,prev,next].forEach(x=>x.disabled=false);
-    resetView(); updateUI();
+  const id=++loadId,u=URL.createObjectURL(f),loaded=new Image();
+  loaded.onload=()=>{
+    URL.revokeObjectURL(u); if(id!==loadId)return;
+    if(loaded.naturalWidth<32||loaded.naturalHeight<32){status.textContent='Slika mora imati najmanje 32 × 32 px.';return}
+    img=loaded;cv.width=img.naturalWidth;cv.height=img.naturalHeight;
+    drag=null;pinch=null;pointers.clear();dirty.clear();resetView();detect();
+    [detectBtn,splitBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn].forEach(x=>x.disabled=false);
+    updateUI();
   };
-  img.src=u;
+  loaded.onerror=()=>{URL.revokeObjectURL(u);if(id===loadId)status.textContent='Slika nije učitana. Izaberi JPEG, PNG ili drugi podržani format.'};
+  loaded.src=u;
 };
 
 function whiteness(r,g,b){const mx=Math.max(r,g,b),mn=Math.min(r,g,b);return(r+g+b)/3-(mx-mn)*1.3}
@@ -100,15 +117,15 @@ function locate(scores,n){
 }
 function detect(){
   if(!img)return;
-  ctx.drawImage(img,0,0);
+  ctx.clearRect(0,0,cv.width,cv.height);ctx.drawImage(img,0,0);
   const d=ctx.getImageData(0,0,cv.width,cv.height).data;
   const xs=locate(scoreLines(d,cv.width,cv.height,true),cv.width);
   const ys=locate(scoreLines(d,cv.width,cv.height,false),cv.height);
   const xb=[0,...xs,cv.width],yb=[0,...ys,cv.height];
   crops=[];
   for(let r=0;r<4;r++)for(let c=0;c<4;c++)crops.push({
-    x0:xb[c]+(c?3:0), x1:xb[c+1]-(c<3?3:0),
-    y0:yb[r]+(r?3:0), y1:yb[r+1]-(r<3?3:0)
+    x0:xb[c]+(c?Math.min(3,Math.floor((xb[c+1]-xb[c])/4)):0), x1:xb[c+1]-(c<3?Math.min(3,Math.floor((xb[c+1]-xb[c])/4)):0),
+    y0:yb[r]+(r?Math.min(3,Math.floor((yb[r+1]-yb[r])/4)):0), y1:yb[r+1]-(r<3?Math.min(3,Math.floor((yb[r+1]-yb[r])/4)):0)
   });
   selected=0; grid.innerHTML=''; draw(); updateUI();
   status.textContent='Detektovano 16 scena. Izaberi scenu i koriguj njen okvir.';
@@ -117,7 +134,7 @@ detectBtn.onclick=detect;
 
 function updateUI(){
   sceneLabel.textContent=img?'Scena '+(selected+1)+' / 16':'Scena —';
-  prev.disabled=!img||selected===0; next.disabled=!img||selected===15;
+  prev.disabled=exporting||!img||selected===0; next.disabled=exporting||!img||selected===15;
 }
 function select(i,focus=false){
   selected=Math.max(0,Math.min(15,i)); draw(); updateUI(); markCards();
@@ -125,14 +142,16 @@ function select(i,focus=false){
 }
 prev.onclick=()=>select(selected-1,true);
 next.onclick=()=>select(selected+1,true);
+focusBtn.onclick=focusScene;
 
 function draw(){
   if(!img)return;
-  ctx.drawImage(img,0,0);
+  ctx.clearRect(0,0,cv.width,cv.height);ctx.drawImage(img,0,0);
   ctx.save();
   for(let i=0;i<crops.length;i++){
     const c=crops[i];
-    ctx.lineWidth=i===selected?Math.max(6,cv.width/240):Math.max(2,cv.width/700);
+    const pixelsPerScreenPixel=cv.width/cv.getBoundingClientRect().width;
+    ctx.lineWidth=(i===selected?4:2)*pixelsPerScreenPixel;
     ctx.strokeStyle=i===selected?'#ffd400':'rgba(0,255,102,.45)';
     ctx.shadowColor=i===selected?'rgba(0,0,0,.9)':'transparent';
     ctx.shadowBlur=i===selected?8:0;
@@ -140,28 +159,30 @@ function draw(){
   }
   const c=crops[selected];
   if(c){
-    const s=Math.max(12,cv.width/120);ctx.fillStyle='#ffd400';
-    for(const [x,y] of [[c.x0,c.y0],[c.x1,c.y0],[c.x0,c.y1],[c.x1,c.y1]]){ctx.beginPath();ctx.arc(x,y,s,0,Math.PI*2);ctx.fill()}
+    $('#cropInfo').textContent=`Original: x=${c.x0}, y=${c.y0}, širina=${c.x1-c.x0}, visina=${c.y1-c.y0} px`;
+    const s=13*cv.width/cv.getBoundingClientRect().width;ctx.fillStyle='#ffd400';
+    for(const [x,y] of [[c.x0,c.y0],[c.x1,c.y0],[c.x0,c.y1],[c.x1,c.y1],[(c.x0+c.x1)/2,c.y0],[(c.x0+c.x1)/2,c.y1],[c.x0,(c.y0+c.y1)/2],[c.x1,(c.y0+c.y1)/2]]){ctx.beginPath();ctx.arc(x,y,s,0,Math.PI*2);ctx.fill()}
   }
   ctx.restore();
 }
-function applyTransform(){stage.style.transform=`translate(${panX}px,${panY}px) scale(${zoom})`}
-function setZoom(v,ax=null,ay=null){
+function applyTransform(){stage.style.transform=`translate(${panX}px,${panY}px) scale(${zoom})`;draw()}
+function setZoom(v,ax=viewer.clientWidth/2,ay=viewer.clientHeight/2){
   const old=zoom;zoom=Math.max(1,Math.min(6,v));
   if(ax!==null&&old!==zoom){panX=ax-(ax-panX)*(zoom/old);panY=ay-(ay-panY)*(zoom/old)}
+  if(zoom===1)panX=panY=0;
   zoomEl.value=Math.round(zoom*100);resetZoom.textContent=Math.round(zoom*100)+'%';applyTransform();
 }
 function resetView(){panX=panY=0;setZoom(1)}
 plus.onclick=()=>setZoom(zoom+.25);minus.onclick=()=>setZoom(zoom-.25);resetZoom.onclick=resetView;zoomEl.oninput=()=>setZoom(+zoomEl.value/100);
 
 function focusScene(){
-  const c=crops[selected],r=viewer.getBoundingClientRect();
+  const c=crops[selected],r=viewer.getBoundingClientRect();if(!c)return;
   const baseW=r.width,baseH=baseW*cv.height/cv.width;
   const sw=(c.x1-c.x0)/cv.width*baseW,sh=(c.y1-c.y0)/cv.height*baseH;
   const target=Math.min(5,Math.max(1,Math.min(r.width/sw,Math.max(300,r.height)/sh)*.8));
   zoom=target;
   const cx=(c.x0+c.x1)/2/cv.width*baseW,cy=(c.y0+c.y1)/2/cv.height*baseH;
-  panX=r.width/2-cx*zoom;panY=Math.min(0,Math.max(300,r.height)/2-cy*zoom);
+  panX=r.width/2-cx*zoom;panY=r.height/2-cy*zoom;
   zoomEl.value=Math.round(zoom*100);resetZoom.textContent=Math.round(zoom*100)+'%';applyTransform();
 }
 function pt(e){
@@ -173,7 +194,7 @@ function sceneAt(p){
   return-1;
 }
 function hit(p){
-  const c=crops[selected],r=cv.getBoundingClientRect(),tx=38*cv.width/r.width,ty=38*cv.height/r.height;
+  const c=crops[selected],r=cv.getBoundingClientRect(),tx=Math.min(26*cv.width/r.width,(c.x1-c.x0)*.3),ty=Math.min(26*cv.height/r.height,(c.y1-c.y0)*.3);
   const near=(a,b,t)=>Math.abs(a-b)<=t;
   const L=near(p.x,c.x0,tx),R=near(p.x,c.x1,tx),T=near(p.y,c.y0,ty),B=near(p.y,c.y1,ty);
   const insideX=p.x>=c.x0-tx&&p.x<=c.x1+tx,insideY=p.y>=c.y0-ty&&p.y<=c.y1+ty;
@@ -182,24 +203,28 @@ function hit(p){
   return null;
 }
 viewer.onpointerdown=e=>{
-  if(!img)return;
+  if(!img||exporting)return;
   viewer.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(pointers.size===2){
     const a=[...pointers.values()],r=viewer.getBoundingClientRect();
-    pinch={d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),z:zoom,cx:(a[0].x+a[1].x)/2-r.left,cy:(a[0].y+a[1].y)/2-r.top};drag=null;return;
+    pinch={d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),z:zoom,cx:(a[0].x+a[1].x)/2-r.left,cy:(a[0].y+a[1].y)/2-r.top,px:panX,py:panY};drag=null;return;
   }
-  const p=pt(e),h=hit(p);
+  const p=pt(e),si=sceneAt(p),h=hit(p);
   if(h){drag={type:'edge',h};return}
-  const si=sceneAt(p);
-  if(si>=0&&si!==selected){select(si);drag={type:'tap'};return}
+  if(si>=0&&si!==selected){select(si);drag={type:'pan',x:e.clientX,y:e.clientY,px:panX,py:panY};return}
   drag={type:'pan',x:e.clientX,y:e.clientY,px:panX,py:panY};
 };
 viewer.onpointermove=e=>{
+  if(exporting)return;
   if(!pointers.has(e.pointerId))return;
   pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(pointers.size===2&&pinch){
     const a=[...pointers.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
-    setZoom(pinch.z*d/pinch.d,pinch.cx,pinch.cy);return;
+    if(!pinch.d)return;
+    zoom=Math.max(1,Math.min(6,pinch.z*d/pinch.d));
+    const r=viewer.getBoundingClientRect(),cx=(a[0].x+a[1].x)/2-r.left,cy=(a[0].y+a[1].y)/2-r.top;
+    panX=cx-(pinch.cx-pinch.px)*zoom/pinch.z;panY=cy-(pinch.cy-pinch.py)*zoom/pinch.z;
+    zoomEl.value=Math.round(zoom*100);resetZoom.textContent=Math.round(zoom*100)+'%';applyTransform();return;
   }
   if(!drag)return;
   if(drag.type==='pan'){
@@ -207,29 +232,90 @@ viewer.onpointermove=e=>{
     return;
   }
   if(drag.type!=='edge')return;
-  const p=pt(e),c=crops[selected],min=Math.max(40,Math.min(cv.width,cv.height)*.04),h=drag.h;
+  const p=pt(e),c=crops[selected],min=Math.min(40,Math.max(1,Math.floor(Math.min(cv.width,cv.height)/100))),h=drag.h;
   if(h.includes('l'))c.x0=Math.round(Math.max(0,Math.min(c.x1-min,p.x)));
   if(h.includes('r'))c.x1=Math.round(Math.min(cv.width,Math.max(c.x0+min,p.x)));
   if(h.includes('t'))c.y0=Math.round(Math.max(0,Math.min(c.y1-min,p.y)));
   if(h.includes('b'))c.y1=Math.round(Math.min(cv.height,Math.max(c.y0+min,p.y)));
-  draw();
+  dirty.add(selected);draw();updateCard(selected);
 };
-function end(e){pointers.delete(e.pointerId);if(pointers.size<2)pinch=null;if(!pointers.size){drag=null;draw()}}
-viewer.onpointerup=end;viewer.onpointercancel=end;
+function end(e){
+  pointers.delete(e.pointerId);
+  if(pointers.size<2)pinch=null;
+  if(pointers.size===1){const p=[...pointers.values()][0];drag={type:'pan',x:p.x,y:p.y,px:panX,py:panY}}
+  if(!pointers.size){drag=null;dirty.forEach(updateCard);dirty.clear();draw()}
+}
+viewer.onpointerup=end;viewer.onpointercancel=end;viewer.onlostpointercapture=end;
+window.addEventListener('resize',()=>{if(img)resetView()});
 
+function setBusy(busy){
+  exporting=busy;drag=null;pinch=null;pointers.clear();
+  [file,detectBtn,splitBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,exportSize,...grid.querySelectorAll('button')].forEach(x=>x.disabled=busy);
+  updateUI();
+}
 function cropCanvas(c){
-  const w=Math.max(1,Math.round(c.x1-c.x0)),h=Math.max(1,Math.round(c.y1-c.y0)),o=document.createElement('canvas');
-  o.width=w;o.height=h;o.getContext('2d').drawImage(img,c.x0,c.y0,w,h,0,0,w,h);return o;
+  const width=Math.max(1,Math.round(c.x1-c.x0)),height=Math.max(1,Math.round(c.y1-c.y0));
+  const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+  const context=canvas.getContext('2d');context.fillStyle='#fff';context.fillRect(0,0,width,height);
+  context.drawImage(img,c.x0,c.y0,width,height,0,0,width,height);
+  return canvas;
+}
+function exportCanvas(c){
+  const original=cropCanvas(c),size=Number(exportSize.value);
+  if(!size)return original;
+  const ratio=Math.min(size/original.width,size/original.height);
+  const width=Math.max(1,Math.round(original.width*ratio)),height=Math.max(1,Math.round(original.height*ratio));
+  let source=original;
+  while(source.width>width*2||source.height>height*2){
+    const step=document.createElement('canvas');
+    step.width=Math.max(width,Math.ceil(source.width/2));
+    step.height=Math.max(height,Math.ceil(source.height/2));
+    const context=step.getContext('2d');context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';
+    context.drawImage(source,0,0,step.width,step.height);source.width=source.height=1;source=step;
+  }
+  const canvas=document.createElement('canvas');canvas.width=canvas.height=size;
+  const context=canvas.getContext('2d');context.fillStyle='#fff';context.fillRect(0,0,size,size);
+  context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';
+  context.drawImage(source,Math.floor((size-width)/2),Math.floor((size-height)/2),width,height);
+  source.width=source.height=1;return canvas;
+}
+function jpegBlob(canvas){
+  return new Promise((resolve,reject)=>{
+    try{canvas.toBlob(blob=>{canvas.width=canvas.height=1;blob?resolve(blob):reject(Error('JPEG export nije uspeo'))},'image/jpeg',.98)}
+    catch(error){canvas.width=canvas.height=1;reject(error)}
+  });
+}
+function download(blob,name){
+  const url=URL.createObjectURL(blob),link=document.createElement('a');
+  link.href=url;link.download=name;document.body.appendChild(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+function updateCard(index){
+  const card=grid.children[index];if(!card)return;
+  const c=crops[index],width=c.x1-c.x0,height=c.y1-c.y0,thumbnail=document.createElement('canvas');
+  const ratio=Math.min(360/width,360/height,1);
+  thumbnail.width=Math.max(1,Math.round(width*ratio));thumbnail.height=Math.max(1,Math.round(height*ratio));
+  thumbnail.getContext('2d').drawImage(img,c.x0,c.y0,width,height,0,0,thumbnail.width,thumbnail.height);
+  card.querySelector('img').src=thumbnail.toDataURL('image/jpeg',.86);
 }
 function split(){
   grid.innerHTML='';
   crops.forEach((c,i)=>{
-    const out=cropCanvas(c),url=out.toDataURL('image/jpeg',.96),card=document.createElement('div');
+    const card=document.createElement('div');
     card.className='card'+(i===selected?' selected':'');card.dataset.i=i;
-    const im=document.createElement('img');im.src=url;im.onclick=()=>select(i,true);
+    const im=document.createElement('img');im.alt='Pregled scene '+(i+1);im.onclick=()=>{if(!exporting)select(i,true)};
     const b=document.createElement('button');b.textContent='Uredi scenu '+(i+1);b.onclick=()=>select(i,true);
-    const a=document.createElement('a');a.href=url;a.download='scene-'+String(i+1).padStart(2,'0')+'.jpg';a.textContent='Preuzmi';
-    card.append(im,b,a);grid.append(card);
+    const save=document.createElement('button');save.textContent='Preuzmi';
+    save.onclick=async()=>{
+      try{
+        setBusy(true);status.textContent='Pripremam scenu '+(i+1)+'…';
+        await new Promise(requestAnimationFrame);
+        download(await jpegBlob(exportCanvas(crops[i])),'scene-'+String(i+1).padStart(2,'0')+'.jpg');
+        status.textContent='Scena '+(i+1)+' je spremna.';
+      }catch(error){status.textContent='Greška: '+error.message}
+      finally{setBusy(false)}
+    };
+    card.append(im,b,save);grid.append(card);updateCard(i);
   });
   status.textContent='Prikazano 16 scena. Dodirni sliku ili „Uredi” za preciznu korekciju.';
 }
@@ -240,31 +326,34 @@ function crc32(a){let c=0xffffffff;for(const b of a){c^=b;for(let j=0;j<8;j++)c=
 const u16=n=>new Uint8Array([n&255,n>>>8&255]),u32=n=>new Uint8Array([n&255,n>>>8&255,n>>>16&255,n>>>24&255]);
 function cat(ps){let n=ps.reduce((s,p)=>s+p.length,0),o=new Uint8Array(n),i=0;for(const p of ps){o.set(p,i);i+=p.length}return o}
 function zipBlob(files){
-  const e=new TextEncoder(),ls=[],cs=[];let off=0;
+  const e=new TextEncoder(),parts=[],cs=[];let off=0;
   for(const f of files){
     const n=e.encode(f.name),d=f.data,c=crc32(d);
-    const l=cat([u32(0x04034b50),u16(20),u16(0),u16(0),u16(0),u16(0),u32(c),u32(d.length),u32(d.length),u16(n.length),u16(0),n,d]);
-    ls.push(l);
+    const header=cat([u32(0x04034b50),u16(20),u16(0),u16(0),u16(0),u16(0),u32(c),u32(d.length),u32(d.length),u16(n.length),u16(0),n]);
+    parts.push(header,d);
     cs.push(cat([u32(0x02014b50),u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),u32(c),u32(d.length),u32(d.length),u16(n.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(off),n]));
-    off+=l.length;
+    off+=header.length+d.length;
   }
   const cd=cat(cs),end=cat([u32(0x06054b50),u16(0),u16(0),u16(files.length),u16(files.length),u32(cd.length),u32(off),u16(0)]);
-  return new Blob([...ls,cd,end],{type:'application/zip'});
+  return new Blob([...parts,cd,end],{type:'application/zip'});
 }
-function jpegBytes(c){return new Promise((ok,no)=>c.toBlob(async b=>b?ok(new Uint8Array(await b.arrayBuffer())):no(Error('JPEG export nije uspeo')),'image/jpeg',.96))}
 async function makeFiles(){
   const fs=[];
-  for(let i=0;i<16;i++)fs.push({name:'scene-'+String(i+1).padStart(2,'0')+'.jpg',data:await jpegBytes(cropCanvas(crops[i]))});
+  for(let i=0;i<16;i++){
+    status.textContent='Pripremam scenu '+(i+1)+' / 16…';
+    await new Promise(requestAnimationFrame);
+    const blob=await jpegBlob(exportCanvas(crops[i]));
+    fs.push({name:'scene-'+String(i+1).padStart(2,'0')+'.jpg',data:new Uint8Array(await blob.arrayBuffer())});
+  }
   return fs;
 }
 zipBtn.onclick=async()=>{
   try{
-    zipBtn.disabled=true;zipBtn.textContent='Pravim ZIP…';status.textContent='Pripremam 16 individualnih cropova…';
-    const b=zipBlob(await makeFiles()),u=URL.createObjectURL(b),a=document.createElement('a');
-    a.href=u;a.download='16-scenes.zip';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),30000);
+    setBusy(true);zipBtn.textContent='Pravim ZIP…';status.textContent='Pripremam 16 individualnih cropova…';
+    download(zipBlob(await makeFiles()),'16-scenes.zip');
     status.textContent='ZIP sa 16 scena je napravljen.';
   }catch(e){status.textContent='Greška: '+e.message}
-  finally{zipBtn.disabled=false;zipBtn.textContent='Preuzmi ZIP'}
+  finally{setBusy(false);zipBtn.textContent='Preuzmi ZIP'}
 };
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
