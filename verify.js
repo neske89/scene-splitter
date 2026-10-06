@@ -7,6 +7,7 @@ const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 const elements = new Map();
 const drawCalls = [];
 const strokeCalls = [];
+const textCalls = [];
 function canvas() {
   const element = {
     width: 0, height: 0,
@@ -22,7 +23,8 @@ function canvas() {
       restore: () => {},
       beginPath: () => {},
       arc: () => {},
-      fill: () => {}
+      fill: () => {},
+      fillText: (...args) => textCalls.push(args)
     })
   };
   return element;
@@ -111,12 +113,12 @@ console.log('edge priority, touch selection, independent drag, interrupted gestu
   fs.writeFileSync('/tmp/scene-splitter-verify.zip',Buffer.from(await archive.arrayBuffer()));
   const handlers={},deleted=[],stored=[];
   const cache={addAll:async assets=>assert(assets.includes('./index.html')),put:async(key,response)=>stored.push(key)};
-  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
+  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
   vm.runInContext(fs.readFileSync(__dirname+'/sw.js','utf8'),swContext);
   let pending;
   handlers.install({waitUntil:p=>pending=p});await pending;
   handlers.activate({waitUntil:p=>pending=p});await pending;
-  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4']);
+  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5']);
   let response,background;
   handlers.fetch({request:{method:'GET',url:'https://neske89.github.io/scene-splitter/',mode:'navigate'},respondWith:p=>response=p,waitUntil:p=>background=p});
   assert((await response).ok);await background;assert.deepStrictEqual(stored,['./index.html']);
@@ -220,3 +222,64 @@ console.log('manual dimensions, image limits, per-scene presets and custom ratio
 
 // A freshly loaded image can be drawn before detection creates its crops.
 vm.runInContext('crops=[];draw()',context);
+
+vm.runInContext('setBusy(false);canvasOffset=0;cv.width=cv.height=800;zoom=1;panX=panY=0;showBoundaries=false;aspectLocks.clear();crops=Array.from({length:16},(_,i)=>({x0:i%4*200,y0:Math.floor(i/4)*200,x1:i%4*200+194,y1:Math.floor(i/4)*200+194}));selected=0',context);
+// No row wrapping: corner scenes expose only their actual grid neighbours.
+for(let i=0;i<16;i++){
+  const points=vm.runInContext(`alignmentPoints(${i})`,context);
+  const row=Math.floor(i/4),col=i%4;
+  assert.strictEqual(points.length,2*((col>0)+(col<3)+(row>0)+(row<3)));
+  for(const p of points){
+    assert(p.reference>=0&&p.reference<16);
+    if(p.arrow==='←')assert.strictEqual(p.reference,i-1);
+    if(p.arrow==='→')assert.strictEqual(p.reference,i+1);
+    if(p.arrow==='↑')assert.strictEqual(p.reference,i-4);
+    if(p.arrow==='↓')assert.strictEqual(p.reference,i+4);
+  }
+}
+function clickArrow(scene,edge,arrow){
+  vm.runInContext(`select(${scene})`,context);
+  const p=vm.runInContext(`alignmentPoints(${scene}).find(p=>p.edge==='${edge}'&&p.arrow==='${arrow}')`,context);
+  const e=event(50,p.x/2,p.y/2);
+  viewer.onpointerdown(e);
+  assert.strictEqual(vm.runInContext('drag.type',context),'align');
+  viewer.onpointerup(e);
+  assert.strictEqual(vm.runInContext(`crops[${scene}].${edge}===crops[${p.reference}].${edge}`,context),true);
+}
+vm.runInContext('crops[1].y0=12;crops[4].x0=12',context);
+clickArrow(0,'y0','→');clickArrow(0,'x0','↓');
+vm.runInContext('crops[5].y1=380;crops[5].x1=380',context);
+clickArrow(6,'y1','←');clickArrow(9,'x1','↑');
+// Moving away from an arrow or cancelling it does not align.
+vm.runInContext('select(0);crops[1].y0=30',context);
+let point=vm.runInContext("alignmentPoints(0).find(p=>p.edge==='y0'&&p.arrow==='→')",context);
+let e=event(51,point.x/2,point.y/2);
+viewer.onpointerdown(e);viewer.onpointermove(event(51,e.clientX+20,e.clientY+20));viewer.onpointerup(event(51,e.clientX+20,e.clientY+20));
+assert.strictEqual(vm.runInContext('crops[0].y0',context),12);
+viewer.onpointerdown(e);viewer.onpointercancel(e);
+assert.strictEqual(vm.runInContext('crops[0].y0',context),12);
+// Pinching over an arrow cancels its action.
+viewer.onpointerdown(e);viewer.onpointerdown(event(52,350,350));
+viewer.onpointerup(event(52,350,350));viewer.onpointerup(e);
+assert.strictEqual(vm.runInContext('crops[0].y0',context),12);
+// Every visible border gets its scene number; the selected scene draws last.
+vm.runInContext('showBoundaries=true',context);
+const before=textCalls.length;vm.runInContext('draw()',context);
+const labels=textCalls.slice(before).map(call=>call[0]).filter(text=>/^\d+$/.test(text));
+assert.strictEqual(labels.length,16);assert.strictEqual(labels.at(-1),'1');
+assert.deepStrictEqual([...labels].sort((a,b)=>Number(a)-Number(b)),Array.from({length:16},(_,i)=>String(i+1)));
+// Hidden boundaries expose no arrow targets, and exporting blocks clicks.
+vm.runInContext('showBoundaries=false;setBusy(true)',context);
+viewer.onpointerdown(e);
+assert.strictEqual(vm.runInContext('pointers.size',context),0);
+assert(html.includes('grid-template-columns:minmax(0,1fr) 360px'));
+console.log('scene numbers, neighbour arrows, all alignment directions, cancelled clicks, pinch priority, cache upgrade and desktop sidebar: OK');
+
+// Arrow hit testing follows the canvas after zoom/pan, using original coordinates.
+vm.runInContext('setBusy(false);selected=0;crops[1].y1=180',context);
+preview.getBoundingClientRect=()=>({left:-100,top:-50,width:800,height:800});
+point=vm.runInContext("alignmentPoints(0).find(p=>p.edge==='y1'&&p.arrow==='→')",context);
+e=event(60,point.x-100,point.y-50);
+viewer.onpointerdown(e);assert.strictEqual(vm.runInContext('drag.type',context),'align');viewer.onpointerup(e);
+assert.strictEqual(vm.runInContext('crops[0].y1',context),180);
+preview.getBoundingClientRect=()=>({left:0,top:0,width:400,height:400});

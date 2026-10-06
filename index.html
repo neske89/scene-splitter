@@ -13,7 +13,7 @@
 <style>
 :root{font-family:system-ui,-apple-system,sans-serif;color-scheme:light dark}
 *{box-sizing:border-box}
-body{max-width:900px;margin:auto;padding:16px}
+body{max-width:1440px;margin:auto;padding:16px}
 h1{font-size:22px}
 .controls{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
 button,input::file-selector-button{padding:10px 14px;border:0;border-radius:10px;font-weight:600}
@@ -40,12 +40,21 @@ canvas{display:block;width:100%;height:auto;background:#222}
 .geometry select{font:inherit;padding:10px;border-radius:10px}
 .alignment select{font:inherit;padding:10px;border-radius:10px}
 .export-row select{font:inherit;padding:10px;border-radius:10px;max-width:100%}
+.workspace,.canvas-panel,.sidebar{min-width:0}
+.sidebar input[type=file]{max-width:100%}
+@media(min-width:1000px){
+  .workspace{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:24px;align-items:start}
+  .sidebar{grid-column:2;grid-row:1;max-height:calc(100vh - 110px);overflow:auto;padding:0 8px}
+  .canvas-panel{grid-column:1;grid-row:1;position:sticky;top:16px}
+}
 @media(min-width:700px){.grid{grid-template-columns:repeat(4,1fr)}}
 </style>
 </head>
 <body>
 <h1>4×4 Scene Splitter</h1>
 <p class="hint">Automatski pronalazi početnih 16 scena. Zatim izaberi scenu i pomeri njene ivice nezavisno od ostalih scena.</p>
+<div class="workspace">
+<aside class="sidebar" aria-label="Kontrole scena">
 <input id="file" type="file" accept="image/*">
 <div class="controls">
   <button id="detect" disabled>Ponovo detektuj</button>
@@ -107,10 +116,14 @@ canvas{display:block;width:100%;height:auto;background:#222}
   </select>
 </div>
 <p class="hint">Kvadratni izvoz čuva celu scenu bez rastezanja; ako okvir nije kvadrat, preostali prostor je beo. Za štampu 17 × 17 cm, 2048 px daje oko 306 dpi. Uvećanje ne dodaje nove detalje.</p>
-<p class="hint">Žuti okvir pripada samo izabranoj sceni. Prevuci ivicu ili ugao. Dodirni drugu scenu da je izabereš. Dupli klik na scenu je fokusira. Dugme „Prikaži sve granice” prikazuje ostale okvire. Pinch ili +/− za zoom; pri zoom-u prevuci unutrašnjost za pomeranje prikaza.</p>
+<p class="hint">Žuti okvir pripada samo izabranoj sceni. Prevuci ivicu ili ugao. Dodirni drugu scenu da je izabereš. Dupli klik na scenu je fokusira. Dugme „Prikaži sve granice” prikazuje ostale okvire. Blago zelene strelice na horizontalnim ivicama poravnavaju sa levom/desnom scenom, a na vertikalnim sa scenom iznad/ispod. Pinch ili +/− za zoom; pri zoom-u prevuci unutrašnjost za pomeranje prikaza.</p>
 <div id="status" class="status" role="status" aria-live="polite"></div>
+</aside>
+<div class="canvas-panel">
 <p id="cropInfo" class="hint"></p>
 <div id="viewer" class="viewer"><div id="stage" class="stage"><canvas id="preview"></canvas></div></div>
+</div>
+</div>
 <div id="grid" class="grid"></div>
 <script>
 const $=s=>document.querySelector(s);
@@ -211,13 +224,13 @@ boundariesBtn.onclick=()=>{
   boundariesBtn.setAttribute('aria-pressed',String(showBoundaries));draw();
 };
 function minimumCropSize(){return Math.min(40,Math.max(1,Math.floor(Math.min(img.naturalWidth,img.naturalHeight)/100)))}
-function alignBoundary(){
+function alignBoundary(edge=alignEdge.value,referenceIndex=Number(alignScene.value)){
   if(!img||exporting)return;
-  const target=crops[selected],reference=crops[Number(alignScene.value)],edge=alignEdge.value;
+  const target=crops[selected],reference=crops[referenceIndex];
   if(!reference||reference===target||!['x0','x1','y0','y1'].includes(edge))return;
   const value=reference[edge],min=minimumCropSize();
   const valid=edge==='x0'?value<=target.x1-min:edge==='x1'?value>=target.x0+min:edge==='y0'?value<=target.y1-min:value>=target.y0+min;
-  if(!valid){status.textContent='Ova ivica bi prešla suprotnu ivicu scene. Izaberi drugu scenu ili ivicu.';return}
+  if(!aspectLocks.has(selected)&&!valid){status.textContent='Ova ivica bi prešla suprotnu ivicu scene. Izaberi drugu scenu ili ivicu.';return}
   if(aspectLocks.has(selected)){
     const start=edge[0]+'0',end=edge[0]+'1',delta=value-target[edge];
     const limit=edge[0]==='x'?img.naturalWidth:img.naturalHeight;
@@ -225,9 +238,9 @@ function alignBoundary(){
     target[start]+=delta;target[end]+=delta;
   }else target[edge]=value;
   draw();updateCard(selected);
-  status.textContent=`Ivica scene ${selected+1} poravnata sa scenom ${Number(alignScene.value)+1}.`;
+  status.textContent=`Ivica scene ${selected+1} poravnata sa scenom ${referenceIndex+1}.`;
 }
-alignBtn.onclick=alignBoundary;
+alignBtn.onclick=()=>alignBoundary();
 function resizeCrop(width,height){
   const min=minimumCropSize();
   if(!Number.isInteger(width)||!Number.isInteger(height)||width<min||height<min||width>img.naturalWidth||height>img.naturalHeight){
@@ -280,29 +293,63 @@ function resizeLocked(p,handle){
 }
 viewer.ondblclick=e=>{
   if(!img||exporting)return;
-  const i=sceneAt(pt(e));if(i>=0)select(i,true);
+  const p=pt(e);if(alignmentHit(p))return;
+  const i=sceneAt(p);if(i>=0)select(i,true);
 };
 
+function visibleScenes(){return [...crops.keys()].filter(i=>i!==selected&&showBoundaries).concat(crops[selected]?selected:[])}
+function alignmentPoints(index){
+  const c=crops[index];if(!c)return [];
+  const row=Math.floor(index/4),col=index%4,w=c.x1-c.x0,h=c.y1-c.y0,points=[];
+  for(const edge of ['y0','y1']){
+    if(col>0)points.push({scene:index,reference:index-1,edge,x:c.x0+w*.25,y:c[edge],arrow:'←'});
+    if(col<3)points.push({scene:index,reference:index+1,edge,x:c.x0+w*.75,y:c[edge],arrow:'→'});
+  }
+  for(const edge of ['x0','x1']){
+    if(row>0)points.push({scene:index,reference:index-4,edge,x:c[edge],y:c.y0+h*.25,arrow:'↑'});
+    if(row<3)points.push({scene:index,reference:index+4,edge,x:c[edge],y:c.y0+h*.75,arrow:'↓'});
+  }
+  return points;
+}
+function dotSizes(index){
+  const c=crops[index],scale=cv.width/cv.getBoundingClientRect().width,span=Math.min(c.x1-c.x0,c.y1-c.y0);
+  return {yellow:Math.min(13*scale,span/10),green:Math.min(11*scale,span/12),hit:Math.min(13*scale,span/10)};
+}
+function alignmentHit(p){
+  for(const i of visibleScenes().reverse()){
+    for(const point of alignmentPoints(i))if(Math.hypot(p.x-point.x,p.y-point.y)<=dotSizes(i).hit)return point;
+  }
+  return null;
+}
+function drawDot(x,y,radius,color,text=''){
+  ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.fill();
+  if(text){
+    ctx.fillStyle='#152018';ctx.font=`bold ${radius*1.35}px system-ui,sans-serif`;
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,x,y);
+  }
+}
 function draw(){
   if(!img)return;
   ctx.clearRect(0,0,cv.width,cv.height);
   ctx.save();ctx.translate(canvasOffset,canvasOffset);ctx.drawImage(img,0,0);
-  for(const i of [...crops.keys()].filter(i=>i!==selected).concat(selected)){
-    if(i!==selected&&!showBoundaries)continue;
-    const c=crops[i];if(!c)continue;
-    const pixelsPerScreenPixel=cv.width/cv.getBoundingClientRect().width;
-    ctx.lineWidth=(i===selected?4:2)*pixelsPerScreenPixel;
+  const scale=cv.width/cv.getBoundingClientRect().width;
+  for(const i of visibleScenes()){
+    const c=crops[i],sizes=dotSizes(i);
+    ctx.lineWidth=(i===selected?4:2)*scale;
     ctx.strokeStyle=i===selected?'#ffd400':'rgba(255,255,255,.85)';
-    ctx.shadowColor=i===selected?'rgba(0,0,0,.9)':'transparent';
-    ctx.shadowBlur=i===selected?8:0;
+    ctx.shadowColor='rgba(0,0,0,.9)';ctx.shadowBlur=i===selected?8:0;
     ctx.strokeRect(c.x0,c.y0,c.x1-c.x0,c.y1-c.y0);
+    ctx.shadowBlur=0;
+    if(i===selected){
+      for(const [x,y] of [[c.x1,c.y0],[c.x0,c.y1],[c.x1,c.y1],[(c.x0+c.x1)/2,c.y0],[(c.x0+c.x1)/2,c.y1],[c.x0,(c.y0+c.y1)/2],[c.x1,(c.y0+c.y1)/2]])drawDot(x,y,sizes.yellow,'#ffd400');
+    }
+    drawDot(c.x0,c.y0,sizes.yellow,'#ffd400',String(i+1));
+    for(const point of alignmentPoints(i))drawDot(point.x,point.y,sizes.green,'#b7dfba',point.arrow);
   }
   const c=crops[selected];
   if(c){
     syncDimensions();
     $('#cropInfo').textContent=`Original: x=${c.x0}, y=${c.y0}, širina=${c.x1-c.x0}, visina=${c.y1-c.y0} px`;
-    const s=13*cv.width/cv.getBoundingClientRect().width;ctx.fillStyle='#ffd400';
-    for(const [x,y] of [[c.x0,c.y0],[c.x1,c.y0],[c.x0,c.y1],[c.x1,c.y1],[(c.x0+c.x1)/2,c.y0],[(c.x0+c.x1)/2,c.y1],[c.x0,(c.y0+c.y1)/2],[c.x1,(c.y0+c.y1)/2]]){ctx.beginPath();ctx.arc(x,y,s,0,Math.PI*2);ctx.fill()}
   }
   ctx.restore();
 }
@@ -350,14 +397,16 @@ viewer.onpointerdown=e=>{
     const a=[...pointers.values()],r=viewer.getBoundingClientRect();
     pinch={d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),z:zoom,cx:(a[0].x+a[1].x)/2-r.left,cy:(a[0].y+a[1].y)/2-r.top,px:panX,py:panY};drag=null;return;
   }
-  const p=pt(e),si=sceneAt(p),h=hit(p);
+  const p=pt(e),alignment=alignmentHit(p);
+  if(alignment){drag={type:'align',point:alignment,x:e.clientX,y:e.clientY,moved:false,pointerId:e.pointerId};return}
+  const si=sceneAt(p),h=hit(p);
   if(h){drag={type:'edge',h};return}
   if(si>=0&&si!==selected){select(si);drag={type:'pan',x:e.clientX,y:e.clientY,px:panX,py:panY};return}
   drag={type:'pan',x:e.clientX,y:e.clientY,px:panX,py:panY};
 };
 viewer.onpointermove=e=>{
   if(exporting)return;
-  if(!pointers.has(e.pointerId))return;
+  if(!pointers.has(e.pointerId)){viewer.style.cursor=img&&alignmentHit(pt(e))?'pointer':'default';return}
   pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(pointers.size===2&&pinch){
     const a=[...pointers.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
@@ -372,6 +421,7 @@ viewer.onpointermove=e=>{
     if(zoom>1){panX=drag.px+e.clientX-drag.x;panY=drag.py+e.clientY-drag.y;applyTransform()}
     return;
   }
+  if(drag.type==='align'){if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8)drag.moved=true;return}
   if(drag.type!=='edge')return;
   const p=pt(e),c=crops[selected],min=minimumCropSize(),h=drag.h;
   if(aspectLocks.has(selected)){resizeLocked(p,h)}else{
@@ -388,7 +438,11 @@ function end(e){
   if(pointers.size===1){const p=[...pointers.values()][0];drag={type:'pan',x:p.x,y:p.y,px:panX,py:panY}}
   if(!pointers.size){drag=null;dirty.forEach(updateCard);dirty.clear();draw()}
 }
-viewer.onpointerup=end;viewer.onpointercancel=end;viewer.onlostpointercapture=end;
+viewer.onpointerup=e=>{
+  const action=drag&&drag.type==='align'&&!drag.moved&&drag.pointerId===e.pointerId&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<=8?drag.point:null;
+  end(e);
+  if(action&&!exporting){select(action.scene);alignBoundary(action.edge,action.reference)}
+};viewer.onpointercancel=end;viewer.onlostpointercapture=end;
 window.addEventListener('resize',()=>{if(img)resetView()});
 
 function setBusy(busy){

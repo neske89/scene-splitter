@@ -15,3 +15,5 @@ Double-click a scene in the main preview to select and focus it. The preview inc
 Run `node verify.js` for crop, focus, alignment, export and service-worker checks.
 
 Enter original-pixel width and height and use “Primeni dimenzije” to resize the selected crop. Choose an aspect preset or a custom positive width:height and use “Primeni odnos” to lock it for that scene. The lock is maintained during dragging and dimension changes. Locked alignment translates the whole crop. Applying “Slobodno” unlocks the aspect ratio. Resizing keeps the top-left position when possible and shifts the crop inside the source image if necessary; invalid or oversized dimensions are rejected.
+
+Every visible border has a numbered yellow top-left handle. Pale green arrow handles between the resize handles copy that edge from the adjacent grid scene: left/right arrows on horizontal edges and up/down arrows on vertical edges. Directions without a neighbour are omitted. Click an arrow to align; dragging, cancellation, and pinch gestures do not trigger alignment. On screens at least 1000 px wide the controls sit to the right of the canvas; narrower screens retain the controls above it.
