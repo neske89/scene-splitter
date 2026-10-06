@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "@tensorflow/tfjs": "4.11.0",
+    "@upscalerjs/esrgan-medium": "1.0.0",
+    "@upscalerjs/esrgan-slim": "1.0.0",
+    "upscaler": "1.0.0"
+  },
+  "name": "scene-splitter",
+  "private": true,
+  "scripts": {
+    "vendor:ai": "node scripts/vendor-ai.js",
+    "test": "node verify.js && node scripts/verify-ai-client.js && node scripts/verify-offline.js && node scripts/verify-ai.js"
+  }
+}

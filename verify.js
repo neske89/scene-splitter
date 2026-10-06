@@ -9,17 +9,20 @@ const drawCalls = [];
 const strokeCalls = [];
 const textCalls = [];
 const textStyles = [],fillStyles = [],strokeStyles = [];
+const blobCalls = [];
 function canvas() {
   const element = {
     width: 0, height: 0,
     style: {},
     getBoundingClientRect: () => ({left: 0, top: 0, width: 400, height: 400}),
+    toBlob(callback, mime, quality){blobCalls.push({width:this.width,height:this.height,mime,quality});callback(new Blob([new Uint8Array([1,2,3])],{type:mime}))},
     getContext: () => ({
       globalAlpha: 1,
       drawImage: (...args) => drawCalls.push(args),
       fillRect: () => {},
       strokeRect(...args){strokeCalls.push(args);strokeStyles.push(this.strokeStyle)},
       translate: () => {},
+      putImageData: () => {},
       clearRect: () => {},
       save: () => {},
       restore: () => {},
@@ -33,7 +36,7 @@ function canvas() {
 }
 const document = {
   querySelector(selector) {
-    if (!elements.has(selector)) elements.set(selector, selector === '#preview' ? canvas() : {style: {}, disabled: true, children: [], querySelectorAll:()=>[], getBoundingClientRect:()=>({left:0,top:0,width:400,height:400}),setPointerCapture:()=>{},setAttribute:()=>{}});
+    if (!elements.has(selector)) elements.set(selector, selector === '#preview' ? canvas() : {style: {}, disabled: true, children: [], querySelectorAll:()=>[], getBoundingClientRect:()=>({left:0,top:0,width:400,height:400}),setPointerCapture:()=>{},setAttribute:()=>{},removeAttribute:()=>{}});
     return elements.get(selector);
   },
   createElement(tag) { return tag === 'canvas' ? canvas() : {style: {}}; }
@@ -115,12 +118,12 @@ console.log('edge priority, touch selection, independent drag, interrupted gestu
   fs.writeFileSync('/tmp/scene-splitter-verify.zip',Buffer.from(await archive.arrayBuffer()));
   const handlers={},deleted=[],stored=[];
   const cache={addAll:async assets=>assert(assets.includes('./index.html')),put:async(key,response)=>stored.push(key)};
-  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
+  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io',href:'https://neske89.github.io/scene-splitter/sw.js'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
   vm.runInContext(fs.readFileSync(__dirname+'/sw.js','utf8'),swContext);
   let pending;
   handlers.install({waitUntil:p=>pending=p});await pending;
   handlers.activate({waitUntil:p=>pending=p});await pending;
-  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6']);
+  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7']);
   let response,background;
   handlers.fetch({request:{method:'GET',url:'https://neske89.github.io/scene-splitter/',mode:'navigate'},respondWith:p=>response=p,waitUntil:p=>background=p});
   assert((await response).ok);await background;assert.deepStrictEqual(stored,['./index.html']);
@@ -337,3 +340,53 @@ viewer.onpointerdown(event(76,-3,-3));viewer.onpointerup(event(76,-3,-3));
 assert.strictEqual(vm.runInContext('showBoundaries',context),false);
 assert.strictEqual(vm.runInContext('selected',context),0);
 console.log('all numbered handles, text-only opacity, separated checkerboard arrows, pale-yellow overview, resize lock and click-to-exit: OK');
+
+(async()=>{
+  const calls=[],downloads=[],revoked=[];
+  context.requestAnimationFrame=callback=>setTimeout(callback,0);
+  context.setTimeout=setTimeout;
+  context.ImageData=class {constructor(data,width,height){this.data=data;this.width=width;this.height=height}};
+  context.URL={createObjectURL:()=>`blob:test-${Math.random()}`,revokeObjectURL:url=>revoked.push(url)};
+  context.SceneAI={settings:(profile,scale)=>({family:'slim',scale}),abort:()=>{},upscale:async(canvas,options,progress)=>{
+    calls.push([canvas.width,canvas.height,options.scale]);
+    progress({stage:'processing',value:1});
+    return {width:canvas.width*options.scale,height:canvas.height*options.scale,pixels:new ArrayBuffer(canvas.width*canvas.height*options.scale**2*4)};
+  }};
+  context.captureDownload=(blob,name)=>downloads.push({blob,name});
+  vm.runInContext('download=captureDownload;setBusy(false);showBoundaries=false;cancelRequested=false;img={naturalWidth:800,naturalHeight:800};crops=Array.from({length:16},()=>({x0:10,y0:20,x1:30,y1:35}))',context);
+  elements.get('#aiScale').value='2';elements.get('#aiProfile').value='auto';elements.get('#exportFormat').value='png';elements.get('#exportSize').value='original';
+  await vm.runInContext('saveScene(0)',context);
+  assert.strictEqual(downloads.at(-1).name,'scene-01.png');
+  assert.deepStrictEqual(blobCalls.at(-1),{width:40,height:30,mime:'image/png',quality:.98});
+  assert.strictEqual(elements.get('#cancelExport').disabled,true);
+  elements.get('#exportSize').value='2048';elements.get('#exportFormat').value='jpeg';
+  await vm.runInContext('saveScene(1)',context);
+  assert.strictEqual(downloads.at(-1).name,'scene-02.jpg');
+  assert.deepStrictEqual(blobCalls.at(-1),{width:2048,height:2048,mime:'image/jpeg',quality:.98});
+  elements.get('#exportSize').value='original';elements.get('#exportFormat').value='png';
+  const start=calls.length;
+  const files=await vm.runInContext('makeFiles()',context);
+  assert.strictEqual(files.length,16);assert.strictEqual(calls.length-start,16);
+  assert(files.every(file=>file.name.endsWith('.png')));
+  // AI preview and source preview use separate full-resolution images.
+  await elements.get('#previewAI').onclick();
+  assert.strictEqual(elements.get('#aiComparison').hidden,false);
+  assert(elements.get('#aiResultInfo').textContent.includes('20 × 15 px → AI 40 × 30 px'));
+  const enhancedURL=elements.get('#comparisonImage').src;
+  elements.get('#showOriginal').onclick();assert.notStrictEqual(elements.get('#comparisonImage').src,enhancedURL);
+  elements.get('#showEnhanced').onclick();assert.strictEqual(elements.get('#comparisonImage').src,enhancedURL);
+  elements.get('#closeComparison').onclick();assert.strictEqual(revoked.length,2);
+  // With AI off, export goes directly from the source pixels.
+  elements.get('#aiScale').value='0';const withoutAI=calls.length;
+  await vm.runInContext('saveScene(2)',context);
+  assert.strictEqual(calls.length,withoutAI);assert.strictEqual(blobCalls.at(-1).width,20);
+  // Cancellation between scenes must suppress downloading a partial archive.
+  elements.get('#aiScale').value='2';const downloadCount=downloads.length;
+  context.SceneAI.upscale=async()=>{elements.get('#cancelExport').onclick();throw Object.assign(Error('cancelled'),{name:'AbortError'})};
+  await elements.get('#zip').onclick();
+  assert.strictEqual(downloads.length,downloadCount);
+  assert.strictEqual(elements.get('#zip').disabled,false);
+  assert.strictEqual(elements.get('#file').disabled,false);
+  assert.strictEqual(elements.get('#status').textContent,'Obrada je prekinuta.');
+  console.log('AI single-scene/ZIP export, PNG/JPEG, final sizing, comparison cleanup, AI-off path and cancellation without partial download: OK');
+})().catch(error=>{console.error(error);process.exitCode=1});

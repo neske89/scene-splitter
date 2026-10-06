@@ -19,3 +19,18 @@ Enter original-pixel width and height and use “Primeni dimenzije” to resize 
 Every yellow handle has a scene number at 55% text opacity; the handle remains opaque. Alternating pale green/blue arrow handles placed inside each scene between the resize handles copy that edge from the adjacent grid scene: left/right arrows on horizontal edges and up/down arrows on vertical edges. Directions without a neighbour are omitted. Click an arrow to align; dragging, cancellation, and pinch gestures do not trigger alignment. On screens at least 1000 px wide the controls sit to the right of the canvas; narrower screens retain the controls above it.
 
 The all-boundaries overview uses pale-yellow outlines and disables resizing, manual dimensions and aspect changes. Arrow clicks align a scene while retaining overview; clicking a scene or its yellow handle returns to single-scene editing. Panning, pinching and cancelled clicks keep overview open.
+
+
+## Local AI export
+
+AI enhancement uses UpscalerJS 1.0.0 with TensorFlow.js 4.11.0. All runtime scripts and slim/medium 2×/4× models are committed in `vendor/`. No image is uploaded and no third-party inference API or CDN is contacted. Static assets download from this site's own origin on first use; the service worker caches successful requests for offline reuse. An unused model still needs its first online download.
+
+Select **AI poboljšanje** (off, 2× or 4×), **AI kvalitet** (automatic, faster/slim, or more detailed/medium), and PNG/JPEG. AI runs on original cropped pixels in a dedicated Web Worker, using WebGL/OffscreenCanvas when supported and a local CPU fallback otherwise. Automatic mode uses slim and smaller patches on mobile/low-memory devices. It processes the ZIP scenes sequentially. PNG is the default lossless output; JPEG uses quality 0.98. Both single-scene downloads and ZIP follow the same settings.
+
+With **Original** output size, AI preserves the crop's aspect and exports its 2×/4× dimensions. Square output sizes fit the enhanced crop without stretching and add white margins as before. Choosing a square larger than the AI result involves further ordinary interpolation. AI estimates details and may alter textures; it cannot guarantee print quality. Use **Uporedi AI rezultat** for a full-resolution before/after comparison of the selected crop before printing. Existing grid thumbnails continue to preview original crop boundaries.
+
+**Prekini obradu** terminates the worker and suppresses the download; an interrupted ZIP is never downloaded partially. Retry starts a fresh worker. Output is limited to about 8 million AI pixels on mobile/low-memory devices and 16 million on desktop, with an 8192 px side limit. If processing fails, retry with 2×/slim or choose AI off. CPU performance and mobile GPU support vary; no target-device benchmark has been performed.
+
+The committed vendor files let GitHub Pages serve this repository without a build. To reproduce them: `npm ci`, then `npm run vendor:ai`. Dependencies and versions are pinned in `package-lock.json`. Third-party licenses are in `vendor/licenses/`; TensorFlow.js is Apache-2.0 and UpscalerJS/model packages are MIT.
+
+Run `npm test` for geometry/export checks, worker cancellation/device-profile checks, service-worker offline caching, and real inference of all four vendored models using the shipped browser bundles on a CPU backend. The inference test starts a temporary loopback server and rejects external fetches. It validates shapes, multi-patch processing, model reuse and tensor cleanup, rather than claiming visual improvements from synthetic test data.

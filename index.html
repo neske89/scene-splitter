@@ -115,16 +115,40 @@ canvas{display:block;width:100%;height:auto;background:#222}
     <option value="4096">4096 × 4096 px</option>
   </select>
 </div>
-<p class="hint">Kvadratni izvoz čuva celu scenu bez rastezanja; ako okvir nije kvadrat, preostali prostor je beo. Za štampu 17 × 17 cm, 2048 px daje oko 306 dpi. Uvećanje ne dodaje nove detalje.</p>
+<div class="export-row">
+  <label for="aiScale">AI poboljšanje</label>
+  <select id="aiScale"><option value="0">Bez AI</option><option value="2" selected>2×</option><option value="4">4×</option></select>
+</div>
+<div class="export-row">
+  <label for="aiProfile">AI kvalitet</label>
+  <select id="aiProfile"><option value="auto">Automatski</option><option value="slim">Brže (lakši model)</option><option value="medium">Detaljnije (sporije)</option></select>
+</div>
+<div class="export-row">
+  <label for="exportFormat">Format</label>
+  <select id="exportFormat"><option value="png">PNG — bez gubitka kvaliteta</option><option value="jpeg">JPEG — manji fajl</option></select>
+</div>
+<div class="controls">
+  <button id="saveSelected" disabled class="primary">Preuzmi izabranu scenu</button>
+  <button id="previewAI" disabled>Uporedi AI rezultat</button>
+  <button id="cancelExport" disabled>Prekini obradu</button>
+</div>
+<p class="hint">AI obrada je lokalna: slike ostaju na uređaju. Model se preuzima sa ovog sajta pri prvoj upotrebi. Automatski režim bira lakši model na telefonu. „Original” uz AI izvozi dimenzije scene uvećane 2× ili 4×. Obrada svih scena može potrajati.</p>
+<p class="hint">Kvadratni izvoz čuva celu scenu bez rastezanja; ako okvir nije kvadrat, preostali prostor je beo. Za štampu 17 × 17 cm, 2048 px daje oko 306 dpi. Obično uvećanje ne vraća detalje; AI ih procenjuje, pa proveri rezultat pre štampe.</p>
 <p class="hint">Žuti okvir pripada samo izabranoj sceni. Prevuci ivicu ili ugao. Dodirni drugu scenu da je izabereš. Dupli klik na scenu je fokusira. Dugme „Prikaži sve granice” prikazuje svetložute okvire svih scena i omogućava samo poravnanje strelicama. Klik na scenu vraća pojedinačni prikaz i resize. Blago zelene strelice na horizontalnim ivicama poravnavaju sa levom/desnom scenom, a na vertikalnim sa scenom iznad/ispod. Pinch ili +/− za zoom; pri zoom-u prevuci unutrašnjost za pomeranje prikaza.</p>
 <div id="status" class="status" role="status" aria-live="polite"></div>
 </aside>
 <div class="canvas-panel">
 <p id="cropInfo" class="hint"></p>
 <div id="viewer" class="viewer"><div id="stage" class="stage"><canvas id="preview"></canvas></div></div>
+<section id="aiComparison" hidden aria-label="Poređenje AI rezultata">
+  <p id="aiResultInfo" class="hint"></p>
+  <div class="controls"><button id="showOriginal">Original</button><button id="showEnhanced">AI rezultat</button><button id="closeComparison">Zatvori poređenje</button></div>
+  <img id="comparisonImage" alt="Poređenje izabrane scene" style="display:block;width:100%;height:auto">
+</section>
 </div>
 </div>
 <div id="grid" class="grid"></div>
+<script src="./ai.js"></script>
 <script>
 const $=s=>document.querySelector(s);
 const file=$('#file'),cv=$('#preview'),ctx=cv.getContext('2d',{willReadFrequently:true});
@@ -135,6 +159,8 @@ const boundariesBtn=$('#boundaries'),alignScene=$('#alignScene'),alignEdge=$('#a
 const cropWidth=$('#cropWidth'),cropHeight=$('#cropHeight'),dimensionsBtn=$('#applyDimensions');
 const aspectRatio=$('#aspectRatio'),aspectWidth=$('#aspectWidth'),aspectHeight=$('#aspectHeight'),aspectBtn=$('#applyAspect');
 const geometryControls=[cropWidth,cropHeight,dimensionsBtn,aspectRatio,aspectWidth,aspectHeight,aspectBtn];
+const aiScale=$('#aiScale'),aiProfile=$('#aiProfile'),exportFormat=$('#exportFormat'),previewAIBtn=$('#previewAI'),cancelExport=$('#cancelExport'),saveSelected=$('#saveSelected');
+let cancelRequested=false,comparisonURLs=[];
 const aspectLocks=new Map();
 let canvasOffset=0,showBoundaries=false;
 let img=null,crops=[],selected=0,zoom=1,panX=0,panY=0,drag=null,pointers=new Map(),pinch=null,dirty=new Set(),loadId=0,exporting=false;
@@ -145,7 +171,7 @@ file.onchange=()=>{
   loaded.onload=()=>{
     URL.revokeObjectURL(u); if(id!==loadId)return;
     if(loaded.naturalWidth<32||loaded.naturalHeight<32){status.textContent='Slika mora imati najmanje 32 × 32 px.';return}
-    img=loaded;canvasOffset=Math.ceil(Math.max(img.naturalWidth,img.naturalHeight)*.05);
+    clearComparison();img=loaded;canvasOffset=Math.ceil(Math.max(img.naturalWidth,img.naturalHeight)*.05);
     cv.width=img.naturalWidth+canvasOffset*2;cv.height=img.naturalHeight+canvasOffset*2;
     drag=null;pinch=null;pointers.clear();dirty.clear();resetView();detect();
     [detectBtn,splitBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls].forEach(x=>x.disabled=false);
@@ -186,7 +212,7 @@ function detect(){
     x0:xb[c]+(c?Math.min(3,Math.floor((xb[c+1]-xb[c])/4)):0), x1:xb[c+1]-(c<3?Math.min(3,Math.floor((xb[c+1]-xb[c])/4)):0),
     y0:yb[r]+(r?Math.min(3,Math.floor((yb[r+1]-yb[r])/4)):0), y1:yb[r+1]-(r<3?Math.min(3,Math.floor((yb[r+1]-yb[r])/4)):0)
   });
-  aspectLocks.clear();selected=0; grid.innerHTML=''; draw(); updateUI();
+  clearComparison();aspectLocks.clear();selected=0; grid.innerHTML=''; draw(); updateUI();
   status.textContent='Detektovano 16 scena. Izaberi scenu i koriguj njen okvir.';
 }
 detectBtn.onclick=detect;
@@ -204,6 +230,7 @@ function syncAspect(){
 }
 function updateUI(){
   syncDimensions();syncAspect();
+  saveSelected.disabled=exporting||!img;previewAIBtn.disabled=exporting||!img||!Number(aiScale.value);
   sceneLabel.textContent=img?'Scena '+(selected+1)+' / 16':'Scena —';
   prev.disabled=exporting||!img||selected===0; next.disabled=exporting||!img||selected===15;
   const reference=Number(alignScene.value);
@@ -464,8 +491,8 @@ viewer.onpointerup=e=>{
 window.addEventListener('resize',()=>{if(img)resetView()});
 
 function setBusy(busy){
-  exporting=busy;drag=null;pinch=null;pointers.clear();
-  [file,detectBtn,splitBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls,exportSize,...grid.querySelectorAll('button')].forEach(x=>x.disabled=busy);
+  exporting=busy;if(busy)cancelRequested=false;cancelExport.disabled=!busy;drag=null;pinch=null;pointers.clear();
+  [file,detectBtn,splitBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls,exportSize,aiScale,aiProfile,exportFormat,saveSelected,previewAIBtn,...grid.querySelectorAll('button')].forEach(x=>x.disabled=busy);
   updateUI();
 }
 function cropCanvas(c){
@@ -476,7 +503,10 @@ function cropCanvas(c){
   return canvas;
 }
 function exportCanvas(c){
-  const original=cropCanvas(c),size=Number(exportSize.value);
+  return fitExport(cropCanvas(c));
+}
+function fitExport(original){
+  const size=Number(exportSize.value);
   if(!size)return original;
   const ratio=Math.min(size/original.width,size/original.height);
   const width=Math.max(1,Math.round(original.width*ratio)),height=Math.max(1,Math.round(original.height*ratio));
@@ -494,12 +524,60 @@ function exportCanvas(c){
   context.drawImage(source,Math.floor((size-width)/2),Math.floor((size-height)/2),width,height);
   source.width=source.height=1;return canvas;
 }
-function jpegBlob(canvas){
+function imageBlob(canvas,format=exportFormat.value){
   return new Promise((resolve,reject)=>{
-    try{canvas.toBlob(blob=>{canvas.width=canvas.height=1;blob?resolve(blob):reject(Error('JPEG export nije uspeo'))},'image/jpeg',.98)}
+    try{canvas.toBlob(blob=>{canvas.width=canvas.height=1;blob?resolve(blob):reject(Error('Izvoz slike nije uspeo'))},format==='jpeg'?'image/jpeg':'image/png',.98)}
     catch(error){canvas.width=canvas.height=1;reject(error)}
   });
 }
+function ensureNotCancelled(){if(cancelRequested)throw Object.assign(Error('Obrada je prekinuta.'),{name:'AbortError'})}
+cancelExport.onclick=()=>{cancelRequested=true;cancelExport.disabled=true;SceneAI.abort();status.textContent='Prekidam obradu…'};
+function sceneFilename(index){return 'scene-'+String(index+1).padStart(2,'0')+(exportFormat.value==='jpeg'?'.jpg':'.png')}
+async function enhancedCrop(c,index,total=1){
+  ensureNotCancelled();
+  const scale=Number(aiScale.value),original=cropCanvas(c);
+  if(!scale)return original;
+  try{
+    const options=SceneAI.settings(aiProfile.value,scale);
+    const result=await SceneAI.upscale(original,options,progress=>{
+      const label=total>1?`Scena ${index+1} / ${total}`:`Scena ${index+1}`;
+      status.textContent=progress.stage==='loading'?`${label}: učitavam lokalni AI model…`:`${label}: AI obrada ${Math.round(progress.value*100)}%…`;
+    });
+    ensureNotCancelled();
+    const canvas=document.createElement('canvas');canvas.width=result.width;canvas.height=result.height;
+    canvas.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(result.pixels),result.width,result.height),0,0);
+    return canvas;
+  }finally{original.width=original.height=1}
+}
+async function prepareExport(c,index,total=1){return fitExport(await enhancedCrop(c,index,total))}
+async function saveScene(index){
+  try{
+    setBusy(true);status.textContent='Pripremam scenu '+(index+1)+'…';
+    await new Promise(requestAnimationFrame);ensureNotCancelled();
+    const blob=await imageBlob(await prepareExport(crops[index],index));ensureNotCancelled();
+    download(blob,sceneFilename(index));status.textContent='Scena '+(index+1)+' je spremna.';
+  }catch(error){status.textContent=error.name==='AbortError'?'Obrada je prekinuta.':'Greška: '+error.message}
+  finally{setBusy(false)}
+}
+saveSelected.onclick=()=>saveScene(selected);
+aiScale.onchange=()=>{clearComparison();updateUI()};aiProfile.onchange=clearComparison;
+function clearComparison(){comparisonURLs.forEach(url=>URL.revokeObjectURL(url));comparisonURLs=[];$('#aiComparison').hidden=true;$('#comparisonImage').removeAttribute('src')}
+$('#closeComparison').onclick=clearComparison;
+previewAIBtn.onclick=async()=>{
+  let original,enhanced;
+  try{
+    setBusy(true);clearComparison();const index=selected,c={...crops[index]};
+    original=cropCanvas(c);enhanced=await enhancedCrop(c,index);ensureNotCancelled();
+    const info=`Scena ${index+1}: original ${original.width} × ${original.height} px → AI ${enhanced.width} × ${enhanced.height} px. Poređenje koristi celu AI scenu, pre prilagođavanja veličini izvoza.`;
+    comparisonURLs.push(URL.createObjectURL(await imageBlob(original,'png')));original=null;ensureNotCancelled();
+    comparisonURLs.push(URL.createObjectURL(await imageBlob(enhanced,'png')));enhanced=null;ensureNotCancelled();
+    const image=$('#comparisonImage');image.src=comparisonURLs[1];
+    $('#showOriginal').onclick=()=>{image.src=comparisonURLs[0];image.alt='Original scene '+(index+1)};
+    $('#showEnhanced').onclick=()=>{image.src=comparisonURLs[1];image.alt='AI rezultat scene '+(index+1)};
+    $('#aiResultInfo').textContent=info;$('#aiComparison').hidden=false;status.textContent='Poređenje scene '+(index+1)+' je spremno.';
+  }catch(error){clearComparison();status.textContent=error.name==='AbortError'?'Obrada je prekinuta.':'Greška: '+error.message}
+  finally{if(original)original.width=original.height=1;if(enhanced)enhanced.width=enhanced.height=1;setBusy(false)}
+};
 function download(blob,name){
   const url=URL.createObjectURL(blob),link=document.createElement('a');
   link.href=url;link.download=name;document.body.appendChild(link);link.click();link.remove();
@@ -521,15 +599,7 @@ function split(){
     const im=document.createElement('img');im.alt='Pregled scene '+(i+1);im.onclick=()=>{if(!exporting)select(i,true)};
     const b=document.createElement('button');b.textContent='Uredi scenu '+(i+1);b.onclick=()=>select(i,true);
     const save=document.createElement('button');save.textContent='Preuzmi';
-    save.onclick=async()=>{
-      try{
-        setBusy(true);status.textContent='Pripremam scenu '+(i+1)+'…';
-        await new Promise(requestAnimationFrame);
-        download(await jpegBlob(exportCanvas(crops[i])),'scene-'+String(i+1).padStart(2,'0')+'.jpg');
-        status.textContent='Scena '+(i+1)+' je spremna.';
-      }catch(error){status.textContent='Greška: '+error.message}
-      finally{setBusy(false)}
-    };
+    save.onclick=()=>saveScene(i);
     card.append(im,b,save);grid.append(card);updateCard(i);
   });
   status.textContent='Prikazano 16 scena. Dodirni sliku ili „Uredi” za preciznu korekciju.';
@@ -557,17 +627,18 @@ async function makeFiles(){
   for(let i=0;i<16;i++){
     status.textContent='Pripremam scenu '+(i+1)+' / 16…';
     await new Promise(requestAnimationFrame);
-    const blob=await jpegBlob(exportCanvas(crops[i]));
-    fs.push({name:'scene-'+String(i+1).padStart(2,'0')+'.jpg',data:new Uint8Array(await blob.arrayBuffer())});
+    ensureNotCancelled();
+    const blob=await imageBlob(await prepareExport(crops[i],i,16));ensureNotCancelled();
+    fs.push({name:sceneFilename(i),data:new Uint8Array(await blob.arrayBuffer())});
   }
   return fs;
 }
 zipBtn.onclick=async()=>{
   try{
     setBusy(true);zipBtn.textContent='Pravim ZIP…';status.textContent='Pripremam 16 individualnih cropova…';
-    download(zipBlob(await makeFiles()),'16-scenes.zip');
+    const files=await makeFiles();ensureNotCancelled();download(zipBlob(files),'16-scenes.zip');
     status.textContent='ZIP sa 16 scena je napravljen.';
-  }catch(e){status.textContent='Greška: '+e.message}
+  }catch(e){status.textContent=e.name==='AbortError'?'Obrada je prekinuta.':'Greška: '+e.message}
   finally{setBusy(false);zipBtn.textContent='Preuzmi ZIP'}
 };
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
