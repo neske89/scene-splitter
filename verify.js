@@ -8,23 +8,25 @@ const elements = new Map();
 const drawCalls = [];
 const strokeCalls = [];
 const textCalls = [];
+const textStyles = [],fillStyles = [],strokeStyles = [];
 function canvas() {
   const element = {
     width: 0, height: 0,
     style: {},
     getBoundingClientRect: () => ({left: 0, top: 0, width: 400, height: 400}),
     getContext: () => ({
+      globalAlpha: 1,
       drawImage: (...args) => drawCalls.push(args),
       fillRect: () => {},
-      strokeRect: (...args) => strokeCalls.push(args),
+      strokeRect(...args){strokeCalls.push(args);strokeStyles.push(this.strokeStyle)},
       translate: () => {},
       clearRect: () => {},
       save: () => {},
       restore: () => {},
       beginPath: () => {},
       arc: () => {},
-      fill: () => {},
-      fillText: (...args) => textCalls.push(args)
+      fill(){fillStyles.push(this.globalAlpha)},
+      fillText(...args){textCalls.push(args);textStyles.push({text:args[0],opacity:this.globalAlpha})}
     })
   };
   return element;
@@ -113,12 +115,12 @@ console.log('edge priority, touch selection, independent drag, interrupted gestu
   fs.writeFileSync('/tmp/scene-splitter-verify.zip',Buffer.from(await archive.arrayBuffer()));
   const handlers={},deleted=[],stored=[];
   const cache={addAll:async assets=>assert(assets.includes('./index.html')),put:async(key,response)=>stored.push(key)};
-  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
+  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
   vm.runInContext(fs.readFileSync(__dirname+'/sw.js','utf8'),swContext);
   let pending;
   handlers.install({waitUntil:p=>pending=p});await pending;
   handlers.activate({waitUntil:p=>pending=p});await pending;
-  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5']);
+  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6']);
   let response,background;
   handlers.fetch({request:{method:'GET',url:'https://neske89.github.io/scene-splitter/',mode:'navigate'},respondWith:p=>response=p,waitUntil:p=>background=p});
   assert((await response).ok);await background;assert.deepStrictEqual(stored,['./index.html']);
@@ -266,8 +268,8 @@ assert.strictEqual(vm.runInContext('crops[0].y0',context),12);
 vm.runInContext('showBoundaries=true',context);
 const before=textCalls.length;vm.runInContext('draw()',context);
 const labels=textCalls.slice(before).map(call=>call[0]).filter(text=>/^\d+$/.test(text));
-assert.strictEqual(labels.length,16);assert.strictEqual(labels.at(-1),'1');
-assert.deepStrictEqual([...labels].sort((a,b)=>Number(a)-Number(b)),Array.from({length:16},(_,i)=>String(i+1)));
+assert.strictEqual(labels.length,128);assert.strictEqual(labels.at(-1),'1');
+for(let i=1;i<=16;i++)assert.strictEqual(labels.filter(label=>label===String(i)).length,8);
 // Hidden boundaries expose no arrow targets, and exporting blocks clicks.
 vm.runInContext('showBoundaries=false;setBusy(true)',context);
 viewer.onpointerdown(e);
@@ -283,3 +285,55 @@ e=event(60,point.x-100,point.y-50);
 viewer.onpointerdown(e);assert.strictEqual(vm.runInContext('drag.type',context),'align');viewer.onpointerup(e);
 assert.strictEqual(vm.runInContext('crops[0].y1',context),180);
 preview.getBoundingClientRect=()=>({left:0,top:0,width:400,height:400});
+
+// Overview only aligns via arrow clicks; resize gestures and manual sizes are locked.
+vm.runInContext('crops=Array.from({length:16},(_,i)=>({x0:i%4*200,y0:Math.floor(i/4)*200,x1:i%4*200+200,y1:Math.floor(i/4)*200+200}));selected=0;setBoundaries(true);zoom=1',context);
+assert.strictEqual(elements.get('#applyDimensions').disabled,true);
+assert.strictEqual(elements.get('#applyAspect').disabled,true);
+assert.strictEqual(vm.runInContext('hit({x:200,y:100})',context),null);
+const cropsBefore=vm.runInContext('JSON.stringify(crops)',context);
+viewer.onpointerdown(event(70,100,50));
+assert.strictEqual(vm.runInContext('drag.type',context),'scene');
+viewer.onpointermove(event(70,140,50));viewer.onpointerup(event(70,140,50));
+assert.strictEqual(vm.runInContext('JSON.stringify(crops)',context),cropsBefore);
+assert.strictEqual(vm.runInContext('showBoundaries',context),true);
+assert.strictEqual(vm.runInContext('resizeCrop(120,120)',context),false);
+// Exact shared borders still have separated arrow circles and hit targets.
+const points=vm.runInContext('crops.flatMap((c,i)=>alignmentPoints(i).map(p=>({...p,r:dotSizes(i).green,hit:dotSizes(i).hit})))',context);
+for(let a=0;a<points.length;a++)for(let b=a+1;b<points.length;b++){
+  const distance=Math.hypot(points[a].x-points[b].x,points[a].y-points[b].y);
+  assert(distance>points[a].r+points[b].r);
+  assert(distance>points[a].hit+points[b].hit);
+}
+for(let i=0;i<16;i++){
+  if(i%4<3)assert.notStrictEqual(vm.runInContext(`arrowColor(${i})`,context),vm.runInContext(`arrowColor(${i+1})`,context));
+  if(i<12)assert.notStrictEqual(vm.runInContext(`arrowColor(${i})`,context),vm.runInContext(`arrowColor(${i+4})`,context));
+}
+const styleStart=textStyles.length,fillStart=fillStyles.length,strokeStart=strokeStyles.length;
+vm.runInContext('draw()',context);
+for(const call of textStyles.slice(styleStart))assert.strictEqual(call.opacity,/^\d+$/.test(call.text)?.55:1);
+assert(fillStyles.slice(fillStart).every(opacity=>opacity===1));
+assert(strokeStyles.slice(strokeStart).every(color=>color==='#fff2a8'));
+// A nonselected scene can be aligned without exiting the overview.
+vm.runInContext('crops[5].y0=215',context);
+point=vm.runInContext("alignmentPoints(4).find(p=>p.edge==='y0'&&p.arrow==='→')",context);
+e=event(71,point.x/2,point.y/2);viewer.onpointerdown(e);viewer.onpointerup(e);
+assert.strictEqual(vm.runInContext('crops[4].y0',context),215);
+assert.strictEqual(vm.runInContext('selected',context),4);
+assert.strictEqual(vm.runInContext('showBoundaries',context),true);
+assert.strictEqual(elements.get('#applyDimensions').disabled,true);
+// Clicking the body or a numbered corner exits overview; cancellation and pinch do not.
+viewer.onpointerdown(event(72,250,250));viewer.onpointercancel(event(72,250,250));
+assert.strictEqual(vm.runInContext('showBoundaries',context),true);
+viewer.onpointerdown(event(73,250,250));viewer.onpointerdown(event(74,280,280));viewer.onpointerup(event(74,280,280));viewer.onpointerup(event(73,250,250));
+assert.strictEqual(vm.runInContext('showBoundaries',context),true);
+viewer.onpointerdown(event(75,250,250));viewer.onpointerup(event(75,250,250));
+assert.strictEqual(vm.runInContext('showBoundaries',context),false);
+assert.strictEqual(vm.runInContext('selected',context),10);
+assert.strictEqual(elements.get('#applyDimensions').disabled,false);
+assert.strictEqual(elements.get('#boundaries').textContent,'Prikaži sve granice');
+vm.runInContext('setBoundaries(true)',context);
+viewer.onpointerdown(event(76,-3,-3));viewer.onpointerup(event(76,-3,-3));
+assert.strictEqual(vm.runInContext('showBoundaries',context),false);
+assert.strictEqual(vm.runInContext('selected',context),0);
+console.log('all numbered handles, text-only opacity, separated checkerboard arrows, pale-yellow overview, resize lock and click-to-exit: OK');
