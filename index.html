@@ -13,6 +13,8 @@
 <style>
 :root{font-family:system-ui,-apple-system,sans-serif;color-scheme:light dark}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
+.controls select,.controls input{font:inherit;padding:8px;border-radius:8px}
 body{max-width:1440px;margin:auto;padding:16px}
 h1{font-size:22px}
 .controls{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
@@ -51,14 +53,25 @@ canvas{display:block;width:100%;height:auto;background:#222}
 </style>
 </head>
 <body>
-<h1>4×4 Scene Splitter</h1>
-<p class="hint">Automatski pronalazi početnih 16 scena. Zatim izaberi scenu i pomeri njene ivice nezavisno od ostalih scena.</p>
+<h1>Scene Splitter</h1>
+<p class="hint">Automatski procenjuje mrežu scena. Po potrebi izaberi mrežu ručno. Zatim izaberi scenu i pomeri njene ivice nezavisno od ostalih scena.</p>
 <div class="workspace">
 <aside class="sidebar" aria-label="Kontrole scena">
 <input id="file" type="file" accept="image/*">
 <div class="controls">
+  <label for="gridMode">Mreža</label>
+  <select id="gridMode"><option value="auto">Automatski</option><option value="manual">Ručno</option></select>
+  <span id="gridSummary" class="badge">Mreža —</span>
+</div>
+<div id="manualGrid" class="controls" hidden>
+  <label for="gridCols">Kolone</label><input id="gridCols" type="number" min="1" max="12" step="1" value="4" style="width:65px">
+  <label for="gridRows">Redovi</label><input id="gridRows" type="number" min="1" max="12" step="1" value="4" style="width:65px">
+  <button id="applyGrid" disabled>Primeni mrežu</button>
+</div>
+<p class="hint">Promena mreže ponovo postavlja sve granice scena. Bez jasnih razmaka koristi ručni režim.</p>
+<div class="controls">
   <button id="detect" disabled>Ponovo detektuj</button>
-  <button id="split" disabled>Prikaži 16 scena</button>
+  <button id="split" disabled>Prikaži scene</button>
   <button id="zip" disabled class="primary">Preuzmi ZIP</button>
 </div>
 <div class="scene-nav">
@@ -149,6 +162,7 @@ canvas{display:block;width:100%;height:auto;background:#222}
 </div>
 <div id="grid" class="grid"></div>
 <script src="./ai.js"></script>
+<script src="./grid-detection.js"></script>
 <script>
 const $=s=>document.querySelector(s);
 const file=$('#file'),cv=$('#preview'),ctx=cv.getContext('2d',{willReadFrequently:true});
@@ -162,6 +176,8 @@ const geometryControls=[cropWidth,cropHeight,dimensionsBtn,aspectRatio,aspectWid
 const aiScale=$('#aiScale'),aiProfile=$('#aiProfile'),exportFormat=$('#exportFormat'),previewAIBtn=$('#previewAI'),cancelExport=$('#cancelExport'),saveSelected=$('#saveSelected');
 let cancelRequested=false,comparisonURLs=[];
 const aspectLocks=new Map();
+const gridMode=$('#gridMode'),gridColsInput=$('#gridCols'),gridRowsInput=$('#gridRows'),applyGrid=$('#applyGrid');
+let gridCols=1,gridRows=1;
 let canvasOffset=0,showBoundaries=false;
 let img=null,crops=[],selected=0,zoom=1,panX=0,panY=0,drag=null,pointers=new Map(),pinch=null,dirty=new Set(),loadId=0,exporting=false;
 
@@ -173,7 +189,7 @@ file.onchange=()=>{
     if(loaded.naturalWidth<32||loaded.naturalHeight<32){status.textContent='Slika mora imati najmanje 32 × 32 px.';return}
     clearComparison();img=loaded;canvasOffset=Math.ceil(Math.max(img.naturalWidth,img.naturalHeight)*.05);
     cv.width=img.naturalWidth+canvasOffset*2;cv.height=img.naturalHeight+canvasOffset*2;
-    drag=null;pinch=null;pointers.clear();dirty.clear();resetView();detect();
+    drag=null;pinch=null;pointers.clear();dirty.clear();resetView();detect({newImage:true});
     [detectBtn,splitBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls].forEach(x=>x.disabled=false);
     updateUI();
   };
@@ -181,41 +197,37 @@ file.onchange=()=>{
   loaded.src=u;
 };
 
-function whiteness(r,g,b){const mx=Math.max(r,g,b),mn=Math.min(r,g,b);return(r+g+b)/3-(mx-mn)*1.3}
-function scoreLines(data,w,h,vertical){
-  const n=vertical?w:h,other=vertical?h:w,scores=new Float32Array(n),step=Math.max(1,Math.floor(other/300));
-  for(let p=0;p<n;p++){let s=0,c=0;for(let q=0;q<other;q+=step){let x=vertical?p:q,y=vertical?q:p,i=(y*w+x)*4;s+=whiteness(data[i],data[i+1],data[i+2]);c++}scores[p]=s/c}
-  return scores;
-}
-function locate(scores,n){
-  const out=[];
-  for(const frac of [.25,.5,.75]){
-    const center=Math.round(n*frac),rad=Math.round(n*.055);let best=center,bv=-1e9;
-    for(let p=Math.max(1,center-rad);p<=Math.min(n-2,center+rad);p++){const v=(scores[p-1]+scores[p]+scores[p+1])/3;if(v>bv){bv=v;best=p}}
-    let threshold=bv-18,l=best,r=best;
-    while(l>1&&scores[l-1]>=threshold&&best-l<14)l--;
-    while(r<n-2&&scores[r+1]>=threshold&&r-best<14)r++;
-    out.push(Math.round((l+r)/2));
+function detect({newImage=false}={}){
+  if(!img||exporting)return;
+  const source=document.createElement('canvas'),scale=Math.min(1,1200/Math.max(img.naturalWidth,img.naturalHeight));
+  source.width=Math.max(1,Math.round(img.naturalWidth*scale));source.height=Math.max(1,Math.round(img.naturalHeight*scale));
+  const sourceCtx=source.getContext('2d',{willReadFrequently:true});sourceCtx.drawImage(img,0,0,source.width,source.height);
+  let manual=gridMode.value==='manual';
+  let result;
+  try{
+    result=SceneGrid.detect(sourceCtx.getImageData(0,0,source.width,source.height).data,source.width,source.height,
+      manual?{cols:Number(gridColsInput.value),rows:Number(gridRowsInput.value)}:{});
+  }catch(e){
+    if(!newImage){status.textContent=e.message;return}
+    // A pending invalid manual choice must not leave crops from the previous image.
+    gridMode.value='auto';manual=false;
+    result=SceneGrid.detect(sourceCtx.getImageData(0,0,source.width,source.height).data,source.width,source.height);
   }
-  return out;
-}
-function detect(){
-  if(!img)return;
-  const source=document.createElement('canvas');source.width=img.naturalWidth;source.height=img.naturalHeight;
-  const sourceCtx=source.getContext('2d',{willReadFrequently:true});sourceCtx.drawImage(img,0,0);
-  const d=sourceCtx.getImageData(0,0,source.width,source.height).data;
-  const xs=locate(scoreLines(d,img.naturalWidth,img.naturalHeight,true),img.naturalWidth);
-  const ys=locate(scoreLines(d,img.naturalWidth,img.naturalHeight,false),img.naturalHeight);
-  const xb=[0,...xs,img.naturalWidth],yb=[0,...ys,img.naturalHeight];
-  crops=[];
-  for(let r=0;r<4;r++)for(let c=0;c<4;c++)crops.push({
-    x0:xb[c]+(c?Math.min(3,Math.floor((xb[c+1]-xb[c])/4)):0), x1:xb[c+1]-(c<3?Math.min(3,Math.floor((xb[c+1]-xb[c])/4)):0),
-    y0:yb[r]+(r?Math.min(3,Math.floor((yb[r+1]-yb[r])/4)):0), y1:yb[r+1]-(r<3?Math.min(3,Math.floor((yb[r+1]-yb[r])/4)):0)
-  });
-  clearComparison();aspectLocks.clear();selected=0; grid.innerHTML=''; draw(); updateUI();
-  status.textContent='Detektovano 16 scena. Izaberi scenu i koriguj njen okvir.';
+  gridCols=result.cols;gridRows=result.rows;
+  crops=result.crops.map(c=>({x0:Math.round(c.x0*img.naturalWidth/source.width),x1:Math.round(c.x1*img.naturalWidth/source.width),
+    y0:Math.round(c.y0*img.naturalHeight/source.height),y1:Math.round(c.y1*img.naturalHeight/source.height)}));
+  gridColsInput.value=gridCols;gridRowsInput.value=gridRows;
+  clearComparison();aspectLocks.clear();dirty.clear();selected=0;grid.innerHTML='';draw();updateUI();
+  status.textContent=(manual?'Postavljena':'Procenjena')+' mreža '+gridCols+' × '+gridRows+' ('+crops.length+' scena). '+
+    (!manual&&!result.hasGutters?'Nema jasnih razmaka; izaberi mrežu ručno ako slika sadrži više scena.':'Izaberi scenu i koriguj njen okvir.');
 }
 detectBtn.onclick=detect;
+applyGrid.onclick=detect;
+gridMode.onchange=()=>{
+  $('#manualGrid').hidden=gridMode.value!=='manual';
+  updateUI();
+  if(gridMode.value==='auto'&&img)detect();
+};
 
 function syncDimensions(){
   const c=crops[selected];if(!c)return;
@@ -230,18 +242,24 @@ function syncAspect(){
 }
 function updateUI(){
   syncDimensions();syncAspect();
+  $('#manualGrid').hidden=gridMode.value!=='manual';
+  $('#gridSummary').textContent=img?gridCols+' × '+gridRows+' · '+crops.length+' scena':'Mreža —';
+  applyGrid.disabled=exporting||!img;
+  [gridMode,gridColsInput,gridRowsInput].forEach(control=>control.disabled=exporting);
   saveSelected.disabled=exporting||!img;previewAIBtn.disabled=exporting||!img||!Number(aiScale.value);
-  sceneLabel.textContent=img?'Scena '+(selected+1)+' / 16':'Scena —';
-  prev.disabled=exporting||!img||selected===0; next.disabled=exporting||!img||selected===15;
+  sceneLabel.textContent=img?'Scena '+(selected+1)+' / '+crops.length:'Scena —';
+  prev.disabled=exporting||!img||selected===0; next.disabled=exporting||!img||selected===crops.length-1;
   const reference=Number(alignScene.value);
   alignScene.innerHTML=crops.map((c,i)=>i===selected?'':`<option value="${i}">Scena ${i+1}</option>`).join('');
-  alignScene.value=String(reference!==selected&&crops[reference]?reference:(selected%4<3?selected+1:selected-1));
+  const fallback=selected%gridCols<gridCols-1?selected+1:selected%gridCols>0?selected-1:selected+gridCols<crops.length?selected+gridCols:selected-gridCols;
+  alignScene.value=crops.length<2?'':String(reference!==selected&&crops[reference]?reference:fallback);
   alignBtn.disabled=exporting||!img||showBoundaries||crops.length<2;
   [...geometryControls,alignScene,alignEdge].forEach(control=>control.disabled=exporting||!img||showBoundaries);
+  if(crops.length<2){alignScene.disabled=true;alignEdge.disabled=true}
 }
 function select(i,focus=false,leaveOverview=true){
   if(leaveOverview&&showBoundaries)setBoundaries(false);
-  selected=Math.max(0,Math.min(15,i)); draw(); updateUI(); markCards();
+  selected=Math.max(0,Math.min(crops.length-1,i)); draw(); updateUI(); markCards();
   if(focus)focusScene();
 }
 prev.onclick=()=>select(selected-1,true);
@@ -332,16 +350,16 @@ viewer.ondblclick=e=>{
 function visibleScenes(){return [...crops.keys()].filter(i=>i!==selected&&showBoundaries).concat(crops[selected]?selected:[])}
 function alignmentPoints(index){
   const c=crops[index];if(!c)return [];
-  const row=Math.floor(index/4),col=index%4,w=c.x1-c.x0,h=c.y1-c.y0,points=[];
+  const row=Math.floor(index/gridCols),col=index%gridCols,w=c.x1-c.x0,h=c.y1-c.y0,points=[];
   const scale=cv.width/cv.getBoundingClientRect().width;
   const inset=Math.min(dotSizes(index).green+3*scale,Math.min(w,h)/8);
   for(const edge of ['y0','y1']){
     if(col>0)points.push({scene:index,reference:index-1,edge,x:c.x0+w*.25,y:c[edge]+(edge==='y0'?inset:-inset),arrow:'←'});
-    if(col<3)points.push({scene:index,reference:index+1,edge,x:c.x0+w*.75,y:c[edge]+(edge==='y0'?inset:-inset),arrow:'→'});
+    if(col<gridCols-1)points.push({scene:index,reference:index+1,edge,x:c.x0+w*.75,y:c[edge]+(edge==='y0'?inset:-inset),arrow:'→'});
   }
   for(const edge of ['x0','x1']){
-    if(row>0)points.push({scene:index,reference:index-4,edge,x:c[edge]+(edge==='x0'?inset:-inset),y:c.y0+h*.25,arrow:'↑'});
-    if(row<3)points.push({scene:index,reference:index+4,edge,x:c[edge]+(edge==='x0'?inset:-inset),y:c.y0+h*.75,arrow:'↓'});
+    if(row>0)points.push({scene:index,reference:index-gridCols,edge,x:c[edge]+(edge==='x0'?inset:-inset),y:c.y0+h*.25,arrow:'↑'});
+    if(row<gridRows-1)points.push({scene:index,reference:index+gridCols,edge,x:c[edge]+(edge==='x0'?inset:-inset),y:c.y0+h*.75,arrow:'↓'});
   }
   return points;
 }
@@ -360,7 +378,7 @@ function yellowHit(p){
   for(const i of visibleScenes().reverse())if(yellowPoints(crops[i]).some(([x,y])=>Math.hypot(p.x-x,p.y-y)<=dotSizes(i).yellow))return i;
   return -1;
 }
-function arrowColor(index){return (Math.floor(index/4)+index%4)%2?'#a6cce8':'#b7dfba'}
+function arrowColor(index){return (Math.floor(index/gridCols)+index%gridCols)%2?'#a6cce8':'#b7dfba'}
 function drawDot(x,y,radius,color,text='',textOpacity=1){
   ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.fill();
   if(text){
@@ -492,7 +510,7 @@ window.addEventListener('resize',()=>{if(img)resetView()});
 
 function setBusy(busy){
   exporting=busy;if(busy)cancelRequested=false;cancelExport.disabled=!busy;drag=null;pinch=null;pointers.clear();
-  [file,detectBtn,splitBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls,exportSize,aiScale,aiProfile,exportFormat,saveSelected,previewAIBtn,...grid.querySelectorAll('button')].forEach(x=>x.disabled=busy);
+  [file,gridMode,gridColsInput,gridRowsInput,applyGrid,detectBtn,splitBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls,exportSize,aiScale,aiProfile,exportFormat,saveSelected,previewAIBtn,...grid.querySelectorAll('button')].forEach(x=>x.disabled=busy);
   updateUI();
 }
 function cropCanvas(c){
@@ -602,7 +620,7 @@ function split(){
     save.onclick=()=>saveScene(i);
     card.append(im,b,save);grid.append(card);updateCard(i);
   });
-  status.textContent='Prikazano 16 scena. Dodirni sliku ili „Uredi” za preciznu korekciju.';
+  status.textContent='Prikazano '+crops.length+' scena. Dodirni sliku ili „Uredi” za preciznu korekciju.';
 }
 splitBtn.onclick=split;
 function markCards(){grid.querySelectorAll('.card').forEach((x,i)=>x.classList.toggle('selected',i===selected))}
@@ -624,20 +642,20 @@ function zipBlob(files){
 }
 async function makeFiles(){
   const fs=[];
-  for(let i=0;i<16;i++){
-    status.textContent='Pripremam scenu '+(i+1)+' / 16…';
+  for(let i=0;i<crops.length;i++){
+    status.textContent='Pripremam scenu '+(i+1)+' / '+crops.length+'…';
     await new Promise(requestAnimationFrame);
     ensureNotCancelled();
-    const blob=await imageBlob(await prepareExport(crops[i],i,16));ensureNotCancelled();
+    const blob=await imageBlob(await prepareExport(crops[i],i,crops.length));ensureNotCancelled();
     fs.push({name:sceneFilename(i),data:new Uint8Array(await blob.arrayBuffer())});
   }
   return fs;
 }
 zipBtn.onclick=async()=>{
   try{
-    setBusy(true);zipBtn.textContent='Pravim ZIP…';status.textContent='Pripremam 16 individualnih cropova…';
-    const files=await makeFiles();ensureNotCancelled();download(zipBlob(files),'16-scenes.zip');
-    status.textContent='ZIP sa 16 scena je napravljen.';
+    setBusy(true);zipBtn.textContent='Pravim ZIP…';status.textContent='Pripremam '+crops.length+' individualnih cropova…';
+    const files=await makeFiles();ensureNotCancelled();download(zipBlob(files),crops.length+'-scenes.zip');
+    status.textContent='ZIP sa '+crops.length+' scena je napravljen.';
   }catch(e){status.textContent=e.name==='AbortError'?'Obrada je prekinuta.':'Greška: '+e.message}
   finally{setBusy(false);zipBtn.textContent='Preuzmi ZIP'}
 };

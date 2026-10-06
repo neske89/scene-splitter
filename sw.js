@@ -1,5 +1,5 @@
-const CACHE='scene-splitter-v8';
-const ASSETS=['./','./index.html','./ai.js','./ai-worker.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
+const CACHE='scene-splitter-v9';
+const ASSETS=['./','./index.html','./ai.js','./grid-detection.js','./ai-worker.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 const SCOPE=new URL('./',self.location.href).href;
 
 self.addEventListener('install',e=>{

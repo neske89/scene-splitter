@@ -9,6 +9,6 @@
   "private": true,
   "scripts": {
     "vendor:ai": "node scripts/vendor-ai.js",
-    "test": "node verify.js && node scripts/verify-ai-client.js && node scripts/verify-offline.js && node scripts/verify-ai.js"
+    "test": "node scripts/verify-grid.js && node verify.js && node scripts/verify-ai-client.js && node scripts/verify-offline.js && node scripts/verify-ai.js"
   }
 }

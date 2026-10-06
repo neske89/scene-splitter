@@ -1,6 +1,6 @@
 # Scene Splitter
 
-Static 4×4 image splitter for GitHub Pages.
+Static image splitter with automatic and manual grid selection for GitHub Pages.
 
 ## GitHub Pages
 Upload these files to the repository root, then:
@@ -8,7 +8,7 @@ Settings → Pages → Deploy from a branch → main → /(root) → Save.
 
 All image processing happens locally in the browser.
 
-Upload an image, adjust any of the 16 independent scene rectangles, and choose Original or a square 2048, 3072, or 4096 px JPEG export. Preview and ZIP use each scene's current crop. Square export preserves the full crop without stretching by adding white margins when needed. Upscaling interpolates pixels and cannot recover missing source detail.
+Upload an image, adjust any of the independent scene rectangles, and choose Original or a square 2048, 3072, or 4096 px JPEG export. Preview and ZIP use each scene's current crop. Square export preserves the full crop without stretching by adding white margins when needed. Upscaling interpolates pixels and cannot recover missing source detail.
 
 Double-click a scene in the main preview to select and focus it. The preview includes padding around the source image so outer-edge handles remain visible. Toggle “Prikaži sve granice” to show the other scenes in white. To align the selected scene, choose a reference scene and Top, Bottom, Left or Right; the matching coordinate is copied to the selected scene only. Alignments that would cross its opposite edge are rejected.
 
@@ -34,3 +34,9 @@ With **Original** output size, AI preserves the crop's aspect and exports its 2�
 The committed vendor files let GitHub Pages serve this repository without a build. To reproduce them: `npm ci`, then `npm run vendor:ai`. Dependencies and versions are pinned in `package-lock.json`. Third-party licenses are in `vendor/licenses/`; TensorFlow.js is Apache-2.0 and UpscalerJS/model packages are MIT.
 
 Run `npm test` for geometry/export checks, worker cancellation/device-profile checks, service-worker offline caching, and real inference of all four vendored models using the shipped browser bundles on a CPU backend. The inference test starts a temporary loopback server and rejects external fetches. It validates shapes, multi-patch processing, model reuse and tensor cleanup, rather than claiming visual improvements from synthetic test data.
+
+## Grid detection
+
+Automatic mode estimates rows and columns independently from bright or dark gutters spanning the image. It supports rectangular and unevenly spaced grids and excludes detected gutters from crops. Analysis uses a preview up to 1200 pixels; exports retain original image pixels. This is a gutter heuristic, not semantic scene recognition: merged cells, overlapping collages and images without clear separators may need manual selection. With no detected separators the image stays as one scene.
+
+Choose Ručno, enter 1–12 columns and rows, then Primeni mrežu. Manual mode refines equal divisions to nearby detected gutters, otherwise uses equal cells. Reapplying detection or changing the grid resets crop adjustments and aspect locks. Navigation, neighbor alignment and ZIP export use the resulting scene count.
