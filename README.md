@@ -40,3 +40,9 @@ Run `npm test` for geometry/export checks, worker cancellation/device-profile ch
 Automatic mode estimates rows and columns independently from bright or dark gutters spanning the image. It supports rectangular and unevenly spaced grids and excludes detected gutters from crops. Analysis uses a preview up to 1200 pixels; exports retain original image pixels. This is a gutter heuristic, not semantic scene recognition: merged cells, overlapping collages and images without clear separators may need manual selection. With no detected separators the image stays as one scene.
 
 Choose Ručno, enter 1–12 columns and rows, then Primeni mrežu. Manual mode refines equal divisions to nearby detected gutters, otherwise uses equal cells. Reapplying detection or changing the grid resets crop adjustments and aspect locks. Navigation, neighbor alignment and ZIP export use the resulting scene count.
+
+## Interface
+
+The light interface follows `ui.png`: a large image canvas with the scene gallery below it, and a desktop sidebar with upload, grid, crop, zoom, AI and export cards. On smaller screens the canvas and controls stack vertically. The preview fits within the viewport height while exports retain their original dimensions. Drag and drop or choose an image up to 50 MB. Privacy and usage help are available from the header; extra alignment controls are under Poravnanje i pomoć.
+
+Prikaži scenu opens the original crop in a floating preview. Uporedi AI rezultat opens a before/after slider with full-resolution original and locally enhanced images; use the slider, Original or AI rezultat, then download the scene. Escape or the close button dismisses the preview. The AI toggle remembers the previous 2×/4× scale. The gallery opens after image loading and can be closed and reopened independently from the boundary overview.

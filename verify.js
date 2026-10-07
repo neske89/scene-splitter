@@ -13,7 +13,7 @@ const blobCalls = [];
 function canvas() {
   const element = {
     width: 0, height: 0,
-    style: {},
+    style: {setProperty(name,value){this[name]=value}},
     getBoundingClientRect: () => ({left: 0, top: 0, width: 400, height: 400}),
     toBlob(callback, mime, quality){blobCalls.push({width:this.width,height:this.height,mime,quality});callback(new Blob([new Uint8Array([1,2,3])],{type:mime}))},
     getContext: () => ({
@@ -36,7 +36,7 @@ function canvas() {
 }
 const document = {
   querySelector(selector) {
-    if (!elements.has(selector)) elements.set(selector, selector === '#preview' ? canvas() : {style: {}, disabled: true, children: [], querySelectorAll:()=>[], getBoundingClientRect:()=>({left:0,top:0,width:400,height:400}),setPointerCapture:()=>{},setAttribute:()=>{},removeAttribute:()=>{}});
+    if (!elements.has(selector)) elements.set(selector, selector === '#preview' ? canvas() : {style: {setProperty(name,value){this[name]=value}}, disabled: true, children: [], querySelectorAll:()=>[], getBoundingClientRect:()=>({left:0,top:0,width:400,height:400}),setPointerCapture:()=>{},setAttribute:()=>{},removeAttribute:()=>{}});
     return elements.get(selector);
   },
   createElement(tag) { return tag === 'canvas' ? canvas() : {style: {}}; }
@@ -119,12 +119,12 @@ console.log('edge priority, touch selection, independent drag, interrupted gestu
   fs.writeFileSync('/tmp/scene-splitter-verify.zip',Buffer.from(await archive.arrayBuffer()));
   const handlers={},deleted=[],stored=[];
   const cache={addAll:async assets=>assert(assets.includes('./index.html')&&assets.includes('./grid-detection.js')),put:async(key,response)=>stored.push(key)};
-  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io',href:'https://neske89.github.io/scene-splitter/sw.js'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
+  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io',href:'https://neske89.github.io/scene-splitter/sw.js'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
   vm.runInContext(fs.readFileSync(__dirname+'/sw.js','utf8'),swContext);
   let pending;
   handlers.install({waitUntil:p=>pending=p});await pending;
   handlers.activate({waitUntil:p=>pending=p});await pending;
-  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8']);
+  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9']);
   let response,background;
   handlers.fetch({request:{method:'GET',url:'https://neske89.github.io/scene-splitter/',mode:'navigate'},respondWith:p=>response=p,waitUntil:p=>background=p});
   assert((await response).ok);await background;assert.deepStrictEqual(stored,['./index.html']);
@@ -278,7 +278,7 @@ for(let i=1;i<=16;i++)assert.strictEqual(labels.filter(label=>label===String(i))
 vm.runInContext('showBoundaries=false;setBusy(true)',context);
 viewer.onpointerdown(e);
 assert.strictEqual(vm.runInContext('pointers.size',context),0);
-assert(html.includes('grid-template-columns:minmax(0,1fr) 360px'));
+assert(html.includes('grid-template-columns:minmax(0,1fr) minmax(420px,.61fr)'));
 console.log('scene numbers, neighbour arrows, all alignment directions, cancelled clicks, pinch priority, cache upgrade and desktop sidebar: OK');
 
 // Arrow hit testing follows the canvas after zoom/pan, using original coordinates.
@@ -355,6 +355,14 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   }};
   context.captureDownload=(blob,name)=>downloads.push({blob,name});
   vm.runInContext('download=captureDownload;setBusy(false);showBoundaries=false;cancelRequested=false;img={naturalWidth:800,naturalHeight:800};crops=Array.from({length:16},()=>({x0:10,y0:20,x1:30,y1:35}))',context);
+  // Upload size cap and the AI toggle must preserve the selected scale.
+  vm.runInContext('loadFile({size:51*1024*1024})',context);
+  assert(elements.get('#status').textContent.includes('50 MB'));
+  elements.get('#aiScale').value='4';elements.get('#aiScale').onchange();
+  elements.get('#aiEnabled').checked=false;elements.get('#aiEnabled').onchange();
+  assert.strictEqual(elements.get('#aiScale').value,'0');assert.strictEqual(elements.get('#previewAI').disabled,true);
+  elements.get('#aiEnabled').checked=true;elements.get('#aiEnabled').onchange();
+  assert.strictEqual(elements.get('#aiScale').value,'4');assert.strictEqual(elements.get('#aiEnabledLabel').textContent,'Uključeno');
   elements.get('#aiScale').value='2';elements.get('#aiProfile').value='auto';elements.get('#exportFormat').value='png';elements.get('#exportSize').value='original';
   await vm.runInContext('saveScene(0)',context);
   assert.strictEqual(downloads.at(-1).name,'scene-01.png');
@@ -375,6 +383,10 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   assert(elements.get('#aiResultInfo').textContent.includes('20 × 15 px → AI 40 × 30 px'));
   const enhancedURL=elements.get('#comparisonImage').src;
   elements.get('#showOriginal').onclick();assert.notStrictEqual(elements.get('#comparisonImage').src,enhancedURL);
+  elements.get('#compareSlider').value='75';elements.get('#compareSlider').oninput();
+  assert.strictEqual(elements.get('#comparisonImage').src,enhancedURL);
+  assert.strictEqual(elements.get('#compareFrame').style['--split'],'75%');
+  assert.strictEqual(elements.get('#comparisonTitle').textContent,'Scena 1');
   elements.get('#showEnhanced').onclick();assert.strictEqual(elements.get('#comparisonImage').src,enhancedURL);
   elements.get('#closeComparison').onclick();assert.strictEqual(revoked.length,2);
   // With AI off, export goes directly from the source pixels.

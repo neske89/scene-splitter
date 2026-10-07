@@ -37,7 +37,7 @@ assert.strictEqual(SceneGrid.detect(f.data,f.w,f.h).crops.length,1);
 // Use a separate app VM to exercise detection, controls, topology and ZIP count.
 const elements=new Map();let pixels=fixture(3,3);
 const drawing=new Proxy({getImageData:()=>({data:pixels.data})},{get:(obj,key)=>key in obj?obj[key]:()=>{}});
-function element(){return {value:'',style:{},disabled:true,children:[],getContext:()=>drawing,getBoundingClientRect:()=>({left:0,top:0,width:480,height:360}),querySelectorAll:()=>[],setAttribute(){},removeAttribute(){}}}
+function element(){return {value:'',style:{setProperty(name,value){this[name]=value}},disabled:true,children:[],getContext:()=>drawing,getBoundingClientRect:()=>({left:0,top:0,width:480,height:360}),querySelectorAll:()=>[],setAttribute(){},removeAttribute(){}}}
 const document={querySelector(s){if(!elements.has(s))elements.set(s,element());return elements.get(s)},createElement:element};
 const app=vm.createContext({document,SceneGrid,navigator:{},window:{addEventListener(){}},Map,Blob,TextEncoder,Uint8Array,requestAnimationFrame:cb=>cb()});
 vm.runInContext(fs.readFileSync('index.html','utf8').match(/<script>([\s\S]*?)<\/script>/)[1],app);
