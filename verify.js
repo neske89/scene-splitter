@@ -45,7 +45,8 @@ const document = {
   },
   createElement(tag) { return tag === 'canvas' ? canvas() : {style: {}}; }
 };
-const context = vm.createContext({document, navigator: {}, window: {addEventListener:()=>{},innerWidth:1200,innerHeight:800}, TextEncoder, Uint8Array, Blob, Map, Math, Float32Array});
+const windowEvents={};
+const context = vm.createContext({document, navigator: {}, window: {addEventListener:(type,handler)=>(windowEvents[type]??=[]).push(handler),innerWidth:1200,innerHeight:800}, TextEncoder, Uint8Array, Blob, Map, Math, Float32Array});
 vm.runInContext(fs.readFileSync(__dirname+'/translations.js','utf8'),context);
 vm.runInContext(script, context);
 for(const lang of ['de','es']){
@@ -245,12 +246,14 @@ viewer.ondblclick({clientX:310,clientY:310});
 assert.strictEqual(vm.runInContext('selected',context),15);
 assert.strictEqual(vm.runInContext('focusedScene',context),15);
 assert.strictEqual(elements.get('#focusLabel').textContent,'Ukloni fokus');
+windowEvents.resize[0]();
+assert.strictEqual(vm.runInContext('focusedScene',context),15);
+assert.strictEqual(vm.runInContext('focusSnapshot.zoom',context),1.7);
 viewer.ondblclick({clientX:310,clientY:310});
 assert.strictEqual(vm.runInContext('focusedScene',context),null);
 assert.strictEqual(vm.runInContext('zoom',context),1.7);
 assert.strictEqual(vm.runInContext('panX',context),23);
 assert.strictEqual(vm.runInContext('panY',context),-11);
-assert.strictEqual(elements.get('#focusLabel').textContent,'Fokusiraj');
 elements.get('#focus').onclick();
 assert.strictEqual(vm.runInContext('focusedScene',context),15);
 elements.get('#focus').onclick();
@@ -272,6 +275,27 @@ elements.get('#focus').onclick();
 assert.strictEqual(vm.runInContext('zoom',context),1.7);
 assert.strictEqual(vm.runInContext('panX',context),23);
 assert.strictEqual(vm.runInContext('panY',context),-11);
+// Mobile double taps focus and unfocus without depending on Safari's dblclick event.
+vm.runInContext('selected=0;focusedScene=null;focusSnapshot=null;lastFocusTransfer=null;lastTouchTap=null;lastTouchDoubleAt=0;zoom=1.7;panX=23;panY=-11',context);
+const touch=(id,x,y)=>({...event(id,x,y),pointerType:'touch'});
+function tap(id,x,y){const e=touch(id,x,y);viewer.onpointerdown(e);viewer.onpointerup(e)}
+tap(91,50,50);assert.strictEqual(vm.runInContext('focusedScene',context),null);
+tap(92,50,50);assert.strictEqual(vm.runInContext('focusedScene',context),0);
+viewer.ondblclick({clientX:50,clientY:50});
+assert.strictEqual(vm.runInContext('focusedScene',context),0);
+tap(93,50,50);tap(94,50,50);
+assert.strictEqual(vm.runInContext('focusedScene',context),null);
+assert.strictEqual(vm.runInContext('zoom',context),1.7);
+tap(95,150,50);tap(96,150,50);
+assert.strictEqual(vm.runInContext('selected',context),1);
+assert.strictEqual(vm.runInContext('focusedScene',context),1);
+tap(97,50,50);tap(98,50,50);
+assert.strictEqual(vm.runInContext('focusedScene',context),0);
+windowEvents.resize[0]();
+assert.strictEqual(vm.runInContext('focusedScene',context),0);
+elements.get('#focus').onclick();
+assert.strictEqual(vm.runInContext('zoom',context),1.7);
+assert.strictEqual(elements.get('#focusLabel').textContent,'Fokusiraj');
 assert(html.includes('<details id="gallery" class="gallery" open>'));
 assert(!html.includes('id="split"'));
 // Every edge copies the matching coordinate from the reference, independently.

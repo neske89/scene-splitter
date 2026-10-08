@@ -167,7 +167,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
  <div class="panel-heading"><h2>Kako radi i privatnost</h2><button id="closePrivacy" aria-label="Zatvori"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg></button></div>
  <p>Sve slike obrađuju se na tvom uređaju i ne šalju se na server. Lokalni AI model preuzima se sa ovog sajta pri prvoj upotrebi, a zatim se čuva za sledeću obradu.</p>
  <p>Automatska detekcija traži svetle i tamne razmake između delova slike. Ako razmaci nisu jasni, izaberi ručnu mrežu. Promena mreže ponovo postavlja sve granice.</p>
- <p>Dupli klik fokusira deo slike. Kada je cela slika vidljiva, prevuci unutrašnjost dela da pomeriš okvir; kada je uvećana, prevlačenje pomera pogled. Žuti kružići menjaju granice, a zelene i plave strelice poravnavaju ivice sa susednim delovima. U prikazu svih granica moguće je samo poravnanje; klik na deo vraća uređivanje.</p>
+ <p>Dupli klik ili dodir fokusira deo slike. Kada je cela slika vidljiva, prevuci unutrašnjost dela da pomeriš okvir; kada je uvećana, prevlačenje pomera pogled. Žuti kružići menjaju granice, a zelene i plave strelice poravnavaju ivice sa susednim delovima. U prikazu svih granica moguće je samo poravnanje; klik na deo vraća uređivanje.</p>
  <p>Kvadratni izvoz čuva ceo okvir i dodaje bele margine. AI procenjuje detalje i može promeniti teksture ili slova: proveri poređenje pre štampe.</p>
 </section>
 <div class="workspace">
@@ -250,7 +250,7 @@ const EN={
   'Jezik':'Language','Ukloni sliku':'Remove image','Kako radi i privatnost':'How it works and privacy','Zatvori':'Close',
   'Sve slike obrađuju se na tvom uređaju i ne šalju se na server. Lokalni AI model preuzima se sa ovog sajta pri prvoj upotrebi, a zatim se čuva za sledeću obradu.':'Images are processed on your device and are not sent to a server. The local AI model is downloaded from this site on first use and saved for later.',
   'Automatska detekcija traži svetle i tamne razmake između delova slike. Ako razmaci nisu jasni, izaberi ručnu mrežu. Promena mreže ponovo postavlja sve granice.':'Automatic detection looks for light and dark gaps between image parts. If gaps are unclear, choose a manual grid. Changing the grid resets all boundaries.',
-  'Dupli klik fokusira deo slike. Kada je cela slika vidljiva, prevuci unutrašnjost dela da pomeriš okvir; kada je uvećana, prevlačenje pomera pogled. Žuti kružići menjaju granice, a zelene i plave strelice poravnavaju ivice sa susednim delovima. U prikazu svih granica moguće je samo poravnanje; klik na deo vraća uređivanje.':'Double-click an image part to focus it. When the whole image is visible, drag inside a part to move its frame; when zoomed in, dragging pans the view. Yellow handles change boundaries, and green and blue arrows align edges with neighboring parts. In the all-boundaries view, only alignment is available; click a part to return to editing.',
+  'Dupli klik ili dodir fokusira deo slike. Kada je cela slika vidljiva, prevuci unutrašnjost dela da pomeriš okvir; kada je uvećana, prevlačenje pomera pogled. Žuti kružići menjaju granice, a zelene i plave strelice poravnavaju ivice sa susednim delovima. U prikazu svih granica moguće je samo poravnanje; klik na deo vraća uređivanje.':'Double-click or double-tap an image part to focus it. When the whole image is visible, drag inside a part to move its frame; when zoomed in, dragging pans the view. Yellow handles change boundaries, and green and blue arrows align edges with neighboring parts. In the all-boundaries view, only alignment is available; click a part to return to editing.',
   'Kvadratni izvoz čuva ceo okvir i dodaje bele margine. AI procenjuje detalje i može promeniti teksture ili slova: proveri poređenje pre štampe.':'Square export keeps the whole frame and adds white margins. AI estimates detail and may change textures or letters: check the comparison before printing.',
   'Kontrole za isecanje slike':'Image cropping controls','Mreža':'Grid','Automatska':'Automatic','Ručna':'Manual','Detektuj':'Detect',
   'Kolone':'Columns','Redovi':'Rows','Primeni mrežu':'Apply grid','Prikaži deo':'Show part','Prikaži sve granice':'Show all boundaries',
@@ -386,7 +386,7 @@ const aspectLocks=new Map();
 const gridMode=$('#gridMode'),gridColsInput=$('#gridCols'),gridRowsInput=$('#gridRows'),applyGrid=$('#applyGrid');
 let gridCols=1,gridRows=1;
 let canvasOffset=0,showBoundaries=false,sceneOverlay=false;
-let img=null,crops=[],selected=0,focusedScene=null,focusSnapshot=null,lastFocusTransfer=null,zoom=1,panX=0,panY=0,drag=null,pointers=new Map(),pinch=null,dirty=new Set(),loadId=0,exporting=false;
+let img=null,crops=[],selected=0,focusedScene=null,focusSnapshot=null,lastFocusTransfer=null,lastTouchTap=null,lastTouchDoubleAt=0,zoom=1,panX=0,panY=0,drag=null,pointers=new Map(),pinch=null,dirty=new Set(),loadId=0,exporting=false;
 
 file.onchange=()=>loadFile(file.files[0]);
 function chooseImage(){file.value='';file.click()}
@@ -606,6 +606,7 @@ function resizeLocked(p,handle){
 }
 viewer.ondblclick=e=>{
   if(!img||exporting)return;
+  if(Date.now()-lastTouchDoubleAt<700)return;
   if(lastFocusTransfer&&Date.now()-lastFocusTransfer.at<600){lastFocusTransfer=null;return}
   lastFocusTransfer=null;
   const p=pt(e);if(alignmentHit(p))return;
@@ -745,6 +746,7 @@ viewer.onpointerdown=e=>{
   if(!img||exporting)return;
   viewer.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(pointers.size===2){
+    lastTouchTap=null;
     const a=[...pointers.values()],r=viewer.getBoundingClientRect();
     pinch={d:Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y),z:zoom,cx:(a[0].x+a[1].x)/2-r.left,cy:(a[0].y+a[1].y)/2-r.top,px:panX,py:panY};drag=null;return;
   }
@@ -753,14 +755,14 @@ viewer.onpointerdown=e=>{
   const si=sceneAt(p),h=hit(p);
   if(showBoundaries){
     const scene=si;
-    drag=scene>=0?{type:'scene',scene,pointerId:e.pointerId,moved:false,x:e.clientX,y:e.clientY,px:panX,py:panY}:{type:'pan',x:e.clientX,y:e.clientY,px:panX,py:panY};return;
+    drag=scene>=0?{type:'scene',scene,pointerId:e.pointerId,moved:false,x:e.clientX,y:e.clientY,px:panX,py:panY}:{type:'pan',scene:-1,pointerId:e.pointerId,moved:false,x:e.clientX,y:e.clientY,px:panX,py:panY};return;
   }
   if(h){drag={type:'edge',h};return}
   if(si>=0&&si!==selected){const wasFocused=focusedScene!==null;select(si);if(wasFocused)lastFocusTransfer={scene:si,at:Date.now()}}
   if(si>=0&&!sceneOverlay&&imageFitsView()){
-    const point=pt(e);drag={type:'move',x:point.x,y:point.y,crop:{...crops[selected]}};return;
+    const point=pt(e);drag={type:'move',scene:si,x:point.x,y:point.y,clientX:e.clientX,clientY:e.clientY,pointerId:e.pointerId,touch:e.pointerType==='touch',moved:false,crop:{...crops[selected]}};return;
   }
-  drag={type:'pan',x:e.clientX,y:e.clientY,px:panX,py:panY};
+  drag={type:'pan',scene:si,pointerId:e.pointerId,moved:false,x:e.clientX,y:e.clientY,px:panX,py:panY};
 };
 viewer.onpointermove=e=>{
   if(exporting)return;
@@ -779,12 +781,16 @@ viewer.onpointermove=e=>{
   }
   if(!drag)return;
   if(drag.type==='pan'||drag.type==='scene'){
-    if(drag.type==='scene'&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8)drag.moved=true;
+    if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8){drag.moved=true;lastTouchTap=null}
+    if(e.pointerType==='touch'&&!drag.moved)return;
     if(zoom>1){panX=drag.px+e.clientX-drag.x;panY=drag.py+e.clientY-drag.y;applyTransform()}
     return;
   }
   if(drag.type==='align'){if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8)drag.moved=true;return}
-  if(drag.type==='move'){moveDrag(pt(e));return}
+  if(drag.type==='move'){
+    if(Math.hypot(e.clientX-drag.clientX,e.clientY-drag.clientY)>8){drag.moved=true;lastTouchTap=null}
+    if(!drag.touch||drag.moved)moveDrag(pt(e));return;
+  }
   if(drag.type!=='edge'||showBoundaries)return;
   const p=pt(e),c=crops[selected],min=minimumCropSize(),h=drag.h;
   if(aspectLocks.has(selected)){resizeLocked(p,h)}else{
@@ -802,13 +808,25 @@ function end(e){
   if(!pointers.size){drag=null;dirty.forEach(updateCard);dirty.clear();draw()}
 }
 viewer.onpointerup=e=>{
+  const tap=e.pointerType==='touch'&&drag&&drag.pointerId===e.pointerId&&!drag.moved&&
+    ['move','pan','scene'].includes(drag.type)&&Math.hypot(e.clientX-(drag.clientX??drag.x),e.clientY-(drag.clientY??drag.y))<=8?
+    {x:e.clientX,y:e.clientY,scene:drag.scene}:null;
   const action=drag&&drag.type==='align'&&!drag.moved&&drag.pointerId===e.pointerId&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<=8?drag.point:null;
   const scene=drag&&drag.type==='scene'&&!drag.moved&&drag.pointerId===e.pointerId&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<=8?drag.scene:-1;
   end(e);
   if(scene>=0&&!exporting)select(scene);
   if(action&&!exporting){select(action.scene,false,false);alignBoundary(action.edge,action.reference)}
-};viewer.onpointercancel=end;viewer.onlostpointercapture=end;
-window.addEventListener('resize',()=>{if(img)resetView();if(comparisonSize)sizeComparison()});
+  if(tap&&tap.scene>=0&&!exporting){
+    const now=Date.now();
+    if(lastTouchTap&&lastTouchTap.scene===tap.scene&&now-lastTouchTap.at<400&&Math.hypot(tap.x-lastTouchTap.x,tap.y-lastTouchTap.y)<32){
+      lastTouchTap=null;lastTouchDoubleAt=now;
+      if(lastFocusTransfer&&lastFocusTransfer.scene===tap.scene&&now-lastFocusTransfer.at<600)lastFocusTransfer=null;
+      else if(tap.scene===selected&&focusedScene===tap.scene)unfocusScene();
+      else select(tap.scene,true);
+    }else lastTouchTap={...tap,at:now};
+  }else if(e.pointerType==='touch')lastTouchTap=null;
+};viewer.onpointercancel=e=>{lastTouchTap=null;end(e)};viewer.onlostpointercapture=end;
+window.addEventListener('resize',()=>{if(img){fitPreview();if(focusedScene!==null)focusScene();else applyTransform()}if(comparisonSize)sizeComparison()});
 
 function setProgress(message,percent=null){
   $('#loaderMessage').textContent=tr(message);
