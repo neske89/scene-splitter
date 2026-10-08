@@ -46,7 +46,16 @@ const document = {
   createElement(tag) { return tag === 'canvas' ? canvas() : {style: {}}; }
 };
 const context = vm.createContext({document, navigator: {}, window: {addEventListener:()=>{},innerWidth:1200,innerHeight:800}, TextEncoder, Uint8Array, Blob, Map, Math, Float32Array});
+vm.runInContext(fs.readFileSync(__dirname+'/translations.js','utf8'),context);
 vm.runInContext(script, context);
+for(const lang of ['de','es']){
+  assert.strictEqual(vm.runInContext(`Object.keys(EN).filter(key=>!(key in EXTRA_TRANSLATIONS.${lang})).length`,context),0);
+  assert.strictEqual(vm.runInContext(`Object.keys(EXTRA_TRANSLATIONS.${lang}).filter(key=>!(key in EN)).length`,context),0);
+  assert.strictEqual(vm.runInContext(`Object.keys(EN).filter(key=>{
+    const fields=text=>[...text.matchAll(/\\{([a-zA-Z]+)\\}/g)].map(match=>match[1]).sort().join(',');
+    return fields(key)!==fields(EXTRA_TRANSLATIONS.${lang}[key]);
+  }).length`,context),0);
+}
 const savedLanguages=new Map();
 context.localStorage={getItem:key=>savedLanguages.get(key)||null,setItem:(key,value)=>savedLanguages.set(key,value)};
 context.navigator.languages=['en-US','sr-RS'];
@@ -66,8 +75,18 @@ vm.runInContext('setProgress("Pripremam obradu…")',context);
 assert.strictEqual(elements.get('#loaderMessage').textContent,'Preparing…');
 assert.strictEqual(elements.get('#language').value,'en');
 assert.strictEqual(savedLanguages.get('scene-splitter-language'),'en');
-context.navigator.languages=['sr-RS'];
-assert.strictEqual(vm.runInContext('preferredLanguage()',context),'en');
+savedLanguages.delete('scene-splitter-language');
+context.navigator.languages=['fr-FR','de-DE','es-ES'];
+assert.strictEqual(vm.runInContext('preferredLanguage()',context),'de');
+vm.runInContext('setLanguage("de")',context);
+assert.strictEqual(staticNode.nodeValue,'Vorheriger');
+assert.strictEqual(elements.get('#previewLabel').textContent,'KI-Ergebnis vergleichen');
+assert.strictEqual(document.documentElement.lang,'de');
+vm.runInContext('setLanguage("es")',context);
+assert.strictEqual(staticNode.nodeValue,'Anterior');
+assert.strictEqual(elements.get('#previewLabel').textContent,'Comparar resultado de IA');
+assert.strictEqual(document.documentElement.lang,'es');
+assert.strictEqual(vm.runInContext('preferredLanguage()',context),'es');
 vm.runInContext('setLanguage("sr")',context);
 assert.strictEqual(staticNode.nodeValue,'Prethodni');
 assert.strictEqual(staticAttribute.value,'Ukloni sliku');
@@ -180,13 +199,13 @@ console.log('edge priority, touch selection, independent drag, interrupted gestu
   const archive=vm.runInContext("zipBlob(Array.from({length:16},(_,i)=>({name:'scene-'+String(i+1).padStart(2,'0')+'.jpg',data:new Uint8Array([1,2,3])})))",context);
   fs.writeFileSync('/tmp/scene-splitter-verify.zip',Buffer.from(await archive.arrayBuffer()));
   const handlers={},deleted=[],stored=[];
-  const cache={addAll:async assets=>assert(assets.includes('./index.html')&&assets.includes('./grid-detection.js')),put:async(key,response)=>stored.push(key)};
-  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io',href:'https://neske89.github.io/scene-splitter/sw.js'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>[...Array.from({length:20},(_,i)=>'scene-splitter-v'+(i+2)),'unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
+  const cache={addAll:async assets=>assert(assets.includes('./index.html')&&assets.includes('./grid-detection.js')&&assets.includes('./translations.js')),put:async(key,response)=>stored.push(key)};
+  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io',href:'https://neske89.github.io/scene-splitter/sw.js'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>[...Array.from({length:21},(_,i)=>'scene-splitter-v'+(i+2)),'unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
   vm.runInContext(fs.readFileSync(__dirname+'/sw.js','utf8'),swContext);
   let pending;
   handlers.install({waitUntil:p=>pending=p});await pending;
   handlers.activate({waitUntil:p=>pending=p});await pending;
-  assert.deepStrictEqual(deleted,Array.from({length:20},(_,i)=>'scene-splitter-v'+(i+2)));
+  assert.deepStrictEqual(deleted,Array.from({length:21},(_,i)=>'scene-splitter-v'+(i+2)));
   let response,background;
   handlers.fetch({request:{method:'GET',url:'https://neske89.github.io/scene-splitter/',mode:'navigate'},respondWith:p=>response=p,waitUntil:p=>background=p});
   assert((await response).ok);await background;assert.deepStrictEqual(stored,['./index.html']);

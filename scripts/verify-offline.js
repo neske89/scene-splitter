@@ -17,7 +17,7 @@ async function request(url) {
   const result = await response; await background; return result;
 }
 async function main() {
-  for (const asset of ['ai-worker.js', 'vendor/tf.min.js', 'vendor/upscaler.min.js', 'vendor/models/slim/x2/definition.js', 'vendor/models/slim/x2/model.json', 'vendor/models/slim/x2/group1-shard1of1.bin']) {
+  for (const asset of ['translations.js', 'ai-worker.js', 'vendor/tf.min.js', 'vendor/upscaler.min.js', 'vendor/models/slim/x2/definition.js', 'vendor/models/slim/x2/model.json', 'vendor/models/slim/x2/group1-shard1of1.bin']) {
     const url = 'https://neske89.github.io/scene-splitter/' + asset;
     assert((await request(url)).ok); assert(stored.has(url));
   }

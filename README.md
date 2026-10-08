@@ -8,7 +8,7 @@ Settings → Pages → Deploy from a branch → main → /(root) → Save.
 
 All image processing happens locally in the browser.
 
-The interface is available in Serbian and English. On first use it follows the first supported language in the browser's language preference list (`navigator.languages`), falling back to English. The language menu in the header overrides this choice and remembers it in local storage on that device. Changing language does not change image pixels or export settings.
+The interface is available in Serbian, English, German and Spanish. On first use it follows the first supported language in the browser's language preference list (`navigator.languages`), falling back to English. The language menu in the header overrides this choice and remembers it in local storage on that device. Changing language does not change image pixels or export settings.
 
 Upload an image, adjust any of the independent scene rectangles, and choose Original or a square 2048, 3072, or 4096 px export. Target size and PNG/JPEG format are shared export settings whether AI is enabled or not. “Prikaži deo” shows the selected crop without AI at the chosen export dimensions and format; its full-size link opens those exact pixels in a new tab. With AI enabled and Original size selected, this plain preview is interpolated to the same 2× dimensions as the AI export. Preview and ZIP use each scene's current crop. Square export preserves the full crop without stretching by adding white margins when needed. Upscaling interpolates pixels and cannot recover missing source detail.
 

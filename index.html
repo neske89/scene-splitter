@@ -152,7 +152,8 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 }
 @media(max-width:1100px){body{padding:20px}.inline-field{gap:7px}}
 @media(max-width:999px){.canvas-panel{grid-row:1}.sidebar{grid-row:2}.viewer{min-height:250px}.app-header{gap:14px}.app-header .soft{font-size:12px}.app-header .soft span{max-width:100px}.sidebar{min-height:0}.privacy-panel{right:16px}}
-@media(max-width:550px){body{padding:16px 12px}h1{font-size:26px}.subtitle{font-size:13px}.app-header{margin-bottom:18px;flex-wrap:wrap}.app-header>div:first-child{flex-basis:100%}.header-actions{margin-left:auto}.app-header .soft,.app-header .remove-image{min-width:38px;padding:9px}.app-header .soft span,.app-header .remove-image span{display:none}.scene-nav{gap:6px}.scene-nav button{font-size:11px;gap:5px}.geometry{gap:8px}.zoomrow{gap:8px;grid-template-columns:auto 35px minmax(0,1fr) 35px 62px}.inline-field{flex-direction:column;align-items:stretch;gap:6px}.export-options{grid-template-columns:minmax(0,1fr) 85px}.gallery{padding:12px}.gallery-title{font-size:16px}.grid{grid-auto-columns:92px}.card img{height:92px}.grid-controls{gap:8px}.grid-controls button{font-size:12px;padding:9px}.comparison{padding:16px}}
+@media(max-width:850px){.app-header{flex-wrap:wrap}.app-header>div:first-child{flex-basis:100%}.header-actions{margin-left:auto}}
+@media(max-width:550px){body{padding:16px 12px}h1{font-size:26px}.subtitle{font-size:13px}.app-header{margin-bottom:18px}.app-header .soft,.app-header .remove-image{min-width:38px;padding:9px}.app-header .soft span,.app-header .remove-image span{display:none}.scene-nav{gap:6px}.scene-nav button{font-size:11px;gap:5px}.geometry{gap:8px}.zoomrow{gap:8px;grid-template-columns:auto 35px minmax(0,1fr) 35px 62px}.inline-field{flex-direction:column;align-items:stretch;gap:6px}.export-options{grid-template-columns:minmax(0,1fr) 85px}.gallery{padding:12px}.gallery-title{font-size:16px}.grid{grid-auto-columns:92px}.card img{height:92px}.grid-controls{gap:8px}.grid-controls button{font-size:12px;padding:9px}.comparison{padding:16px}}
 </style>
 </head>
 <body>
@@ -160,7 +161,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 <div id="appShell">
 <header class="app-header">
  <div><h1>Iseci i podeli</h1><p class="subtitle">Iseci jedan deo slike ili je podeli na više manjih slika. Podesi svaki okvir i preuzmi rezultate.</p></div>
- <div class="header-actions"><select id="language" class="language-select" aria-label="Jezik"><option value="sr">Srpski</option><option value="en">English</option></select><button id="removeImage" class="remove-image" hidden disabled aria-label="Ukloni sliku"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg><span>Ukloni sliku</span></button><button id="privacyToggle" class="soft" aria-expanded="false" aria-controls="privacyPanel"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg><span>Kako radi i privatnost</span></button></div>
+ <div class="header-actions"><select id="language" class="language-select" aria-label="Jezik"><option value="sr">Srpski</option><option value="en">English</option><option value="de">Deutsch</option><option value="es">Español</option></select><button id="removeImage" class="remove-image" hidden disabled aria-label="Ukloni sliku"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg><span>Ukloni sliku</span></button><button id="privacyToggle" class="soft" aria-expanded="false" aria-controls="privacyPanel"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg><span>Kako radi i privatnost</span></button></div>
 </header>
 <section id="privacyPanel" class="privacy-panel" hidden aria-label="Kako radi i privatnost">
  <div class="panel-heading"><h2>Kako radi i privatnost</h2><button id="closePrivacy" aria-label="Zatvori"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg></button></div>
@@ -240,6 +241,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 </div>
 <script src="./ai.js"></script>
 <script src="./grid-detection.js"></script>
+<script src="./translations.js"></script>
 <script>
 const EN={
   'Iseci i podeli':'Crop & Split',
@@ -328,14 +330,15 @@ const EN={
 };
 function preferredLanguage(){
   let saved=null;try{saved=localStorage.getItem('scene-splitter-language')}catch{}
-  if(saved==='sr'||saved==='en')return saved;
+  if(['sr','en','de','es'].includes(saved))return saved;
   const languages=navigator.languages?.length?navigator.languages:[navigator.language||'sr'];
-  for(const item of languages){const code=String(item).toLowerCase().split('-')[0];if(code==='sr'||code==='en')return code}
+  for(const item of languages){const code=String(item).toLowerCase().split('-')[0];if(['sr','en','de','es'].includes(code))return code}
   return 'en';
 }
 let language=preferredLanguage();
 function tr(key,values={}){
-  const template=language==='en'?(EN[key]||key):key;
+  const extra=typeof EXTRA_TRANSLATIONS==='undefined'?null:EXTRA_TRANSLATIONS[language];
+  const template=language==='sr'?key:(extra?.[key]||EN[key]||key);
   return template.replace(/\{(\w+)\}/g,(_,name)=>String(values[name]??''));
 }
 const staticText=[],staticAttributes=[];
@@ -354,7 +357,7 @@ function captureStaticTranslations(){
 function applyStaticTranslations(){
   for(const item of staticText)item.node.nodeValue=item.original.replace(item.key,tr(item.key));
   for(const item of staticAttributes)item.element.setAttribute(item.name,tr(item.key));
-  if(document.documentElement)document.documentElement.lang=language==='sr'?'sr-Latn':'en';
+  if(document.documentElement)document.documentElement.lang=language==='sr'?'sr-Latn':language;
   document.title=tr('Iseci i podeli — isecanje slika');
   $('#language').value=language;
 }
@@ -1064,7 +1067,7 @@ zipBtn.onclick=async()=>{
   finally{setBusy(false)}
 };
 function setLanguage(next,persist=true){
-  if(next!=='sr'&&next!=='en')return;
+  if(!['sr','en','de','es'].includes(next))return;
   language=next;
   if(persist)try{localStorage.setItem('scene-splitter-language',language)}catch{}
   applyStaticTranslations();updateUI();syncOverlayButton();
