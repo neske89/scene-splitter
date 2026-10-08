@@ -4,12 +4,13 @@
     "@upscalerjs/esrgan-medium": "1.0.0",
     "@upscalerjs/esrgan-slim": "1.0.0",
     "@upscalerjs/esrgan-thick": "1.0.0",
+    "onnxruntime-web": "1.30.0",
     "upscaler": "1.0.0"
   },
   "name": "scene-splitter",
   "private": true,
   "scripts": {
     "vendor:ai": "node scripts/vendor-ai.js && node scripts/vendor-real-ai.js",
-    "test": "node scripts/verify-grid.js && node verify.js && node scripts/verify-ai-client.js && node scripts/verify-offline.js && node scripts/verify-ai.js"
+    "test": "node scripts/verify-grid.js && node verify.js && node scripts/verify-ai-client.js && node scripts/verify-offline.js && node scripts/verify-ai.js && node scripts/verify-swinir.js"
   }
 }

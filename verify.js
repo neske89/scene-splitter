@@ -510,6 +510,8 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   assert.strictEqual(vm.runInContext('aiPlan(crops[0]).scale',context),8);
   elements.get('#aiProfile').value='real-general';
   assert.strictEqual(vm.runInContext('aiPlan(crops[0]).scale',context),4);
+  elements.get('#aiProfile').value='swinir';
+  assert.strictEqual(vm.runInContext('aiPlan(crops[0]).scale',context),8);
   elements.get('#aiProfile').value='auto';
   vm.runInContext('crops[0]={x0:10,y0:20,x1:30,y1:35}',context);
   elements.get('#exportSize').value='original';elements.get('#exportFormat').value='png';

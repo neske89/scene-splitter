@@ -22,6 +22,8 @@ async function main() {
   assert.strictEqual(mobile.patchSize, 24);
   assert.strictEqual(ai.settings('thick',8).scale,8);
   assert.strictEqual(ai.settings('real-general',4).family,'real-general');
+  assert.strictEqual(ai.settings('swinir',8).family,'swinir');
+  assert.throws(()=>ai.settings('swinir',4),/Neispravan/);
   assert.throws(()=>ai.settings('real-general',2),/Neispravan/);
   const progress = [], promise = ai.upscale(canvas, mobile, event => progress.push(event.value));
   const first = workers[0];

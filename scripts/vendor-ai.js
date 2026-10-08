@@ -12,6 +12,9 @@ fs.mkdirSync(path.join(root, 'vendor/licenses'), { recursive: true });
 fs.copyFileSync(path.join(__dirname, 'tensorflow-LICENSE.txt'), path.join(root, 'vendor/licenses/tensorflow.txt'));
 copy('upscaler/dist/browser/umd/upscaler.min.js', 'upscaler.min.js');
 copy('upscaler/LICENSE', 'licenses/upscaler.txt');
+for (const file of ['ort.min.js', 'ort-wasm-simd-threaded.jsep.mjs', 'ort-wasm-simd-threaded.jsep.wasm']) {
+  copy(`onnxruntime-web/dist/${file}`, `onnx/${file}`);
+}
 for (const family of ['slim', 'medium', 'thick']) {
   const pkg = `@upscalerjs/esrgan-${family}`;
   copy(`${pkg}/LICENSE`, `licenses/esrgan-${family}.txt`);
@@ -24,4 +27,4 @@ for (const family of ['slim', 'medium', 'thick']) {
     }
   }
 }
-console.log('Vendored pinned TensorFlow.js, UpscalerJS and ESRGAN 2×/4×/8× models.');
+console.log('Vendored pinned TensorFlow.js, UpscalerJS, ONNX Runtime Web and ESRGAN 2×/4×/8× models.');

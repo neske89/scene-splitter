@@ -6,8 +6,9 @@
       (navigator.deviceMemory && navigator.deviceMemory <= 4);
   }
   function settings(profile, scale) {
-    if (!['auto', 'slim', 'medium', 'thick', 'real-general', 'real-anime'].includes(profile) || ![2, 4, 8].includes(scale) ||
-        (scale === 8 && profile !== 'thick') || (profile.startsWith('real-') && scale !== 4)) throw Error('Neispravan AI režim.');
+    if (!['auto', 'slim', 'medium', 'thick', 'real-general', 'real-anime', 'swinir'].includes(profile) || ![2, 4, 8].includes(scale) ||
+        (scale === 8 && !['thick', 'swinir'].includes(profile)) || (profile.startsWith('real-') && scale !== 4) ||
+        (profile === 'swinir' && scale !== 8)) throw Error('Neispravan AI režim.');
     const small = smallDevice();
     return { family: profile === 'auto' ? (small ? 'slim' : 'medium') : profile,
       scale, patchSize: small ? 24 : 48, maxPixels: small ? 8388608 : 16777216 };

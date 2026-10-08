@@ -1,11 +1,22 @@
 // Only same-origin static scripts/weights are loaded. Image pixels stay here.
 importScripts('./vendor/tf.min.js', './vendor/upscaler.min.js');
-let upscaler, graphModel, modelKey, running = false;
+let upscaler, graphModel, onnxSession, modelKey, running = false;
 async function loadModel(family, scale) {
   const key = `${family}/x${scale}`;
-  if (modelKey === key && (upscaler || graphModel)) return;
+  if (modelKey === key && (upscaler || graphModel || onnxSession)) return;
   if (upscaler) { await upscaler.dispose(); upscaler = null; modelKey = null; }
   if (graphModel) { graphModel.dispose(); graphModel = null; modelKey = null; }
+  if (onnxSession) { await onnxSession.release(); onnxSession = null; modelKey = null; }
+  if (family === 'swinir') {
+    if (!self.ort) importScripts('./vendor/onnx/ort.min.js');
+    ort.env.wasm.numThreads = 1;
+    ort.env.wasm.wasmPaths = new URL('./vendor/onnx/', self.location.href).href;
+    onnxSession = await ort.InferenceSession.create(
+      new URL('./vendor/models/swinir/x8/model.onnx', self.location.href).href,
+      { executionProviders: ['wasm'] });
+    modelKey = key;
+    return;
+  }
   // WebGL can use OffscreenCanvas in workers; CPU is the local fallback.
   try { if (typeof OffscreenCanvas === 'undefined' || !await tf.setBackend('webgl')) await tf.setBackend('cpu'); }
   catch (_) { await tf.setBackend('cpu'); }
@@ -70,14 +81,57 @@ async function upscaleReal(pixels, width, height, id) {
   }
   return rgba;
 }
+async function upscaleSwinIR(pixels, width, height, id) {
+  // Exported from the official 8× weights with a fixed 32×32 RGB input.
+  const tile = 32, stride = 24, scale = 8, plane = tile * tile;
+  const origins = length => {
+    if (length <= tile) return [0];
+    const values = [];
+    for (let n = 0; n < length - tile; n += stride) values.push(n);
+    values.push(length - tile);
+    return values;
+  };
+  const xs = origins(width), ys = origins(height);
+  const rgba = new Uint8ClampedArray(width * height * scale * scale * 4);
+  let completed = 0;
+  for (let yi = 0; yi < ys.length; yi++) for (let xi = 0; xi < xs.length; xi++) {
+    const x = xs[xi], y = ys[yi], rgb = new Float32Array(plane * 3);
+    for (let ty = 0; ty < tile; ty++) for (let tx = 0; tx < tile; tx++) {
+      const src = (Math.min(height - 1, y + ty) * width + Math.min(width - 1, x + tx)) * 4;
+      const dst = ty * tile + tx;
+      rgb[dst] = pixels[src] / 255; rgb[plane + dst] = pixels[src + 1] / 255; rgb[plane * 2 + dst] = pixels[src + 2] / 255;
+    }
+    const input = new ort.Tensor('float32', rgb, [1, 3, tile, tile]);
+    let output;
+    try {
+      output = (await onnxSession.run({ input })).output;
+      if (output.dims.join(',') !== '1,3,256,256') throw Error('Neočekivana veličina SwinIR rezultata.');
+      const values = output.data, outPlane = tile * scale * tile * scale;
+      const left = xi ? Math.floor((xs[xi - 1] + tile + x) / 2) : 0;
+      const right = xi + 1 < xs.length ? Math.floor((x + tile + xs[xi + 1]) / 2) : width;
+      const top = yi ? Math.floor((ys[yi - 1] + tile + y) / 2) : 0;
+      const bottom = yi + 1 < ys.length ? Math.floor((y + tile + ys[yi + 1]) / 2) : height;
+      for (let oy = top * scale; oy < bottom * scale; oy++) for (let ox = left * scale; ox < right * scale; ox++) {
+        const source = (oy - y * scale) * tile * scale + ox - x * scale;
+        const target = (oy * width * scale + ox) * 4;
+        rgba[target] = values[source] * 255; rgba[target + 1] = values[outPlane + source] * 255;
+        rgba[target + 2] = values[outPlane * 2 + source] * 255; rgba[target + 3] = 255;
+      }
+    } finally { input.dispose?.(); output?.dispose?.(); }
+    completed++;
+    self.postMessage({ id, type: 'progress', stage: 'processing', value: completed / (xs.length * ys.length) });
+  }
+  return rgba;
+}
 self.onmessage = async ({ data }) => {
   const { id, width, height, pixels, family, scale, patchSize } = data;
   if (running) return;
   running = true;
   let input, output;
   try {
-    if (!['slim', 'medium', 'thick', 'real-general', 'real-anime'].includes(family) || ![2, 4, 8].includes(scale) ||
-        (scale === 8 && family !== 'thick') || (family.startsWith('real-') && scale !== 4) ||
+    if (!['slim', 'medium', 'thick', 'real-general', 'real-anime', 'swinir'].includes(family) || ![2, 4, 8].includes(scale) ||
+        (scale === 8 && !['thick', 'swinir'].includes(family)) || (family.startsWith('real-') && scale !== 4) ||
+        (family === 'swinir' && scale !== 8) ||
         !Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 ||
         width * height * scale * scale > 16777216 || width * scale > 8192 || height * scale > 8192 ||
         !(pixels instanceof ArrayBuffer) || pixels.byteLength !== width * height * 4) {
@@ -85,6 +139,11 @@ self.onmessage = async ({ data }) => {
     }
     self.postMessage({ id, type: 'progress', stage: 'loading', value: 0 });
     await loadModel(family, scale);
+    if (family === 'swinir') {
+      const rgba = await upscaleSwinIR(new Uint8Array(pixels), width, height, id);
+      self.postMessage({ id, type: 'result', width: width * 8, height: height * 8, pixels: rgba.buffer, backend: 'wasm' }, [rgba.buffer]);
+      return;
+    }
     if (family.startsWith('real-')) {
       const rgba = await upscaleReal(new Uint8Array(pixels), width, height, id);
       self.postMessage({ id, type: 'result', width: width * 4, height: height * 4, pixels: rgba.buffer, backend: tf.getBackend() }, [rgba.buffer]);
