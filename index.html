@@ -27,6 +27,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
 .icon{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .icon-sprite{position:absolute;width:0;height:0;overflow:hidden}
 .app-header{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:24px}
+.header-actions{display:flex;align-items:center;gap:8px;flex:none}
+.remove-image{background:#fff0f0;border-color:#f2b8b5;color:#b42318}
+.remove-image:hover:not(:disabled){background:#ffe1e1;border-color:#e8918b}
 h1{font-size:31px;letter-spacing:-1px;margin:0 0 5px;line-height:1.2}
 .subtitle{margin:0;color:#56637f;font-size:15px;line-height:1.5}
 h2{font-size:16px;letter-spacing:-.35px;margin:0;display:flex;align-items:center;gap:10px}
@@ -95,7 +98,6 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 .empty-canvas p{font-size:13px;max-width:300px;line-height:1.6;margin:0}
 .empty-canvas .hint{color:#a5afc1}
 #cropInfo{margin:8px 2px 0;font-size:11px}
-.remove-image{margin-top:10px;min-height:32px;padding:7px 11px;font-size:12px}
 .gallery{border:1px solid #e0e7f2;border-radius:18px;background:#ffffffc7;padding:14px;margin-top:18px}
 .gallery-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px;cursor:pointer;list-style:none}
 .gallery-heading::-webkit-details-marker{display:none}
@@ -149,7 +151,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 }
 @media(max-width:1100px){body{padding:20px}.inline-field{gap:7px}}
 @media(max-width:999px){.canvas-panel{grid-row:1}.sidebar{grid-row:2}.viewer{min-height:250px}.app-header{gap:14px}.app-header .soft{font-size:12px}.app-header .soft span{max-width:100px}.sidebar{min-height:0}.privacy-panel{right:16px}}
-@media(max-width:550px){body{padding:16px 12px}h1{font-size:26px}.subtitle{font-size:13px}.app-header{margin-bottom:18px}.app-header .soft{min-width:38px;padding:9px}.app-header .soft span{display:none}.scene-nav{gap:6px}.scene-nav button{font-size:11px;gap:5px}.geometry{gap:8px}.zoomrow{gap:8px;grid-template-columns:auto 35px minmax(0,1fr) 35px 62px}.inline-field{flex-direction:column;align-items:stretch;gap:6px}.export-options{grid-template-columns:minmax(0,1fr) 85px}.gallery{padding:12px}.gallery-title{font-size:16px}.grid{grid-auto-columns:92px}.card img{height:92px}.grid-controls{gap:8px}.grid-controls button{font-size:12px;padding:9px}.comparison{padding:16px}}
+@media(max-width:550px){body{padding:16px 12px}h1{font-size:26px}.subtitle{font-size:13px}.app-header{margin-bottom:18px}.app-header .soft,.app-header .remove-image{min-width:38px;padding:9px}.app-header .soft span,.app-header .remove-image span{display:none}.scene-nav{gap:6px}.scene-nav button{font-size:11px;gap:5px}.geometry{gap:8px}.zoomrow{gap:8px;grid-template-columns:auto 35px minmax(0,1fr) 35px 62px}.inline-field{flex-direction:column;align-items:stretch;gap:6px}.export-options{grid-template-columns:minmax(0,1fr) 85px}.gallery{padding:12px}.gallery-title{font-size:16px}.grid{grid-auto-columns:92px}.card img{height:92px}.grid-controls{gap:8px}.grid-controls button{font-size:12px;padding:9px}.comparison{padding:16px}}
 </style>
 </head>
 <body>
@@ -157,7 +159,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 <div id="appShell">
 <header class="app-header">
  <div><h1>Iseci i podeli</h1><p class="subtitle">Iseci jedan deo slike ili je podeli na više manjih slika. Podesi svaki okvir i preuzmi rezultate.</p></div>
- <button id="privacyToggle" class="soft" aria-expanded="false" aria-controls="privacyPanel"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg><span>Kako radi i privatnost</span></button>
+ <div class="header-actions"><button id="removeImage" class="remove-image" hidden disabled aria-label="Ukloni sliku"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg><span>Ukloni sliku</span></button><button id="privacyToggle" class="soft" aria-expanded="false" aria-controls="privacyPanel"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg><span>Kako radi i privatnost</span></button></div>
 </header>
 <section id="privacyPanel" class="privacy-panel" hidden aria-label="Kako radi i privatnost">
  <div class="panel-heading"><h2>Kako radi i privatnost</h2><button id="closePrivacy" aria-label="Zatvori"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg></button></div>
@@ -213,7 +215,6 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 <div class="canvas-panel">
  <input id="file" class="file-input" type="file" accept="image/*" aria-label="Izaberi sliku">
  <div id="viewer" class="viewer"><div id="stage" class="stage"><canvas id="preview"></canvas></div><div id="emptyCanvas" class="empty-canvas"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-upload"/></svg><strong>Dodaj sliku za početak</strong><p>Prevuci sliku ovde ili je izaberi sa uređaja.</p><button id="chooseFileCanvas" class="primary">Izaberi sliku</button><p class="hint">PNG, JPG, WEBP i drugi podržani formati · Do 50 MB</p></div></div>
- <button id="removeImage" class="secondary remove-image" hidden disabled>Ukloni sliku</button>
  <p id="cropInfo" class="hint"></p>
  <details id="gallery" class="gallery" open><summary class="gallery-heading"><span class="gallery-title"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-grid"/></svg><span id="galleryTitle">Delovi slike (0)</span></span><span class="gallery-toggle"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-up"/></svg><span class="when-open">Zatvori prikaz</span><span class="when-closed">Otvori prikaz</span></span></summary><div id="grid" class="grid"></div></details>
  <div id="comparisonBackdrop" class="comparison-backdrop" hidden aria-hidden="true"></div>
