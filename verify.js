@@ -75,6 +75,7 @@ assert.strictEqual(vm.runInContext('pt({clientX:0,clientY:0}).y',context),50);
 preview.getBoundingClientRect=()=>({left:0,top:0,width:400,height:400});
 vm.runInContext('crops=Array.from({length:16},(_,i)=>({x0:i%4*200,y0:Math.floor(i/4)*200,x1:i%4*200+194,y1:Math.floor(i/4)*200+194}));selected=0',context);
 const viewer=elements.get('#viewer');
+const viewerClasses=new Set();viewer.classList={add:name=>viewerClasses.add(name),remove:name=>viewerClasses.delete(name),contains:name=>viewerClasses.has(name)};
 const event=(pointerId,clientX,clientY)=>({pointerId,clientX,clientY});
 // The selected right edge takes priority over the neighbouring crop's interior.
 viewer.onpointerdown(event(1,103,50));
@@ -120,12 +121,12 @@ console.log('edge priority, touch selection, independent drag, interrupted gestu
   fs.writeFileSync('/tmp/scene-splitter-verify.zip',Buffer.from(await archive.arrayBuffer()));
   const handlers={},deleted=[],stored=[];
   const cache={addAll:async assets=>assert(assets.includes('./index.html')&&assets.includes('./grid-detection.js')),put:async(key,response)=>stored.push(key)};
-  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io',href:'https://neske89.github.io/scene-splitter/sw.js'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11','scene-splitter-v12','scene-splitter-v13','scene-splitter-v14','scene-splitter-v15','unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
+  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io',href:'https://neske89.github.io/scene-splitter/sw.js'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11','scene-splitter-v12','scene-splitter-v13','scene-splitter-v14','scene-splitter-v15','scene-splitter-v16','unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
   vm.runInContext(fs.readFileSync(__dirname+'/sw.js','utf8'),swContext);
   let pending;
   handlers.install({waitUntil:p=>pending=p});await pending;
   handlers.activate({waitUntil:p=>pending=p});await pending;
-  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11','scene-splitter-v12','scene-splitter-v13','scene-splitter-v14']);
+  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11','scene-splitter-v12','scene-splitter-v13','scene-splitter-v14','scene-splitter-v15']);
   let response,background;
   handlers.fetch({request:{method:'GET',url:'https://neske89.github.io/scene-splitter/',mode:'navigate'},respondWith:p=>response=p,waitUntil:p=>background=p});
   assert((await response).ok);await background;assert.deepStrictEqual(stored,['./index.html']);
@@ -463,6 +464,36 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   assert.strictEqual(downloads.at(-1).name,'deo-01.jpg');
   assert.strictEqual(calls.length,aiCount);
   elements.get('#closeComparison').onclick();assert.strictEqual(revoked.length,4);
+  // Text mode upscales without loading an AI model and previews the selected format.
+  elements.get('#processingMode').value='text';elements.get('#processingMode').onchange();
+  elements.get('#exportSize').value='original';elements.get('#aiScale').value='8';
+  const textCalls=calls.length;
+  await vm.runInContext('saveScene(0)',context);
+  assert.strictEqual(calls.length,textCalls);
+  assert.deepStrictEqual(blobCalls.at(-1),{width:160,height:120,mime:'image/jpeg',quality:.98});
+  await elements.get('#previewAI').onclick();
+  assert.strictEqual(calls.length,textCalls);
+  assert.strictEqual(elements.get('#showEnhanced').textContent,'Očuvaj slova');
+  assert.strictEqual(elements.get('#enhancedTag').textContent,'Očuvaj slova (8× · JPEG)');
+  assert.strictEqual(elements.get('#aiEnabled').disabled,true);
+  elements.get('#closeComparison').onclick();
+  elements.get('#processingMode').value='photo';elements.get('#processingMode').onchange();
+  // A mobile-sized 4× AI result may be interpolated to 8× if the final canvas fits.
+  const oldSettings=context.SceneAI.settings;
+  context.SceneAI.settings=(profile,scale)=>({family:'slim',scale,maxPixels:8388608});
+  vm.runInContext('crops[0]={x0:0,y0:0,x1:500,y1:500}',context);
+  elements.get('#exportFormat').value='png';
+  await vm.runInContext('saveScene(0)',context);
+  assert.deepStrictEqual(calls.at(-1),[500,500,4]);
+  assert.deepStrictEqual(blobCalls.at(-1),{width:4000,height:4000,mime:'image/png',quality:.98});
+  vm.runInContext('crops[0]={x0:0,y0:0,x1:600,y1:600}',context);
+  const beforeLimit=calls.length;
+  await vm.runInContext('saveScene(0)',context);
+  assert.strictEqual(calls.length,beforeLimit);
+  assert.strictEqual(elements.get('#aiNotice').hidden,false);
+  assert(elements.get('#aiNotice').textContent.includes('prevelik'));
+  vm.runInContext('crops[0]={x0:10,y0:20,x1:30,y1:35}',context);
+  context.SceneAI.settings=oldSettings;
   // With AI off, export goes directly from the source pixels.
   elements.get('#aiScale').value='0';elements.get('#exportSize').value='original';elements.get('#exportFormat').value='png';const withoutAI=calls.length;
   await vm.runInContext('saveScene(2)',context);
@@ -476,5 +507,20 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   assert.strictEqual(elements.get('#zip').disabled,false);
   assert.strictEqual(elements.get('#file').disabled,false);
   assert.strictEqual(elements.get('#status').textContent,'Obrada je prekinuta.');
+  // Both file buttons and canvas drop use the same loader; removing clears the image state.
+  let chooserClicks=0;elements.get('#file').click=()=>chooserClicks++;
+  elements.get('#chooseFileCanvas').onclick();elements.get('#chooseFile').onclick();
+  assert.strictEqual(chooserClicks,2);
+  let dropped=null;context.captureDropped=f=>{dropped=f};vm.runInContext('loadFile=captureDropped',context);
+  const droppedFile={name:'nova.png'};
+  viewer.ondragover({preventDefault(){}});assert(viewerClasses.has('drag-over'));
+  viewer.ondrop({preventDefault(){},dataTransfer:{files:[droppedFile]}});
+  assert.strictEqual(dropped,droppedFile);assert.strictEqual(viewerClasses.has('drag-over'),false);
+  elements.get('#removeImage').onclick();
+  assert.strictEqual(vm.runInContext('img',context),null);
+  assert.strictEqual(vm.runInContext('crops.length',context),0);
+  assert.strictEqual(elements.get('#emptyCanvas').hidden,false);
+  assert.strictEqual(elements.get('#removeImage').disabled,true);
+  assert.strictEqual(elements.get('#fileInfo').textContent,'Nijedna slika nije izabrana.');
   console.log('AI single-scene/ZIP export, PNG/JPEG, final sizing, comparison cleanup, AI-off path and cancellation without partial download: OK');
 })().catch(error=>{console.error(error);process.exitCode=1});
