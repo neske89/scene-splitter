@@ -6,7 +6,8 @@
       (navigator.deviceMemory && navigator.deviceMemory <= 4);
   }
   function settings(profile, scale) {
-    if (!['auto', 'slim', 'medium'].includes(profile) || ![2, 4].includes(scale)) throw Error('Neispravan AI režim.');
+    if (!['auto', 'slim', 'medium', 'thick', 'real-general', 'real-anime'].includes(profile) || ![2, 4, 8].includes(scale) ||
+        (scale === 8 && profile !== 'thick') || (profile.startsWith('real-') && scale !== 4)) throw Error('Neispravan AI režim.');
     const small = smallDevice();
     return { family: profile === 'auto' ? (small ? 'slim' : 'medium') : profile,
       scale, patchSize: small ? 24 : 48, maxPixels: small ? 8388608 : 16777216 };
@@ -21,7 +22,7 @@
     if (active) return Promise.reject(Error('AI obrada je već u toku.'));
     const width = canvas.width, height = canvas.height;
     if (width * height * options.scale ** 2 > options.maxPixels || width * options.scale > 8192 || height * options.scale > 8192) {
-      return Promise.reject(Error('AI rezultat je prevelik za ovaj uređaj. Izaberi 2× ili manji okvir scene.'));
+      return Promise.reject(Error('AI rezultat je prevelik za ovaj uređaj. Izaberi manji okvir scene ili ciljnu veličinu.'));
     }
     if (typeof Worker === 'undefined') return Promise.reject(Error('Ovaj pregledač ne podržava lokalnu AI obradu. Izaberi izvoz bez AI.'));
     return new Promise((resolve, reject) => {

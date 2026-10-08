@@ -20,6 +20,9 @@ async function main() {
   const mobile = ai.settings('auto', 2);
   assert.strictEqual(mobile.family, 'slim');
   assert.strictEqual(mobile.patchSize, 24);
+  assert.strictEqual(ai.settings('thick',8).scale,8);
+  assert.strictEqual(ai.settings('real-general',4).family,'real-general');
+  assert.throws(()=>ai.settings('real-general',2),/Neispravan/);
   const progress = [], promise = ai.upscale(canvas, mobile, event => progress.push(event.value));
   const first = workers[0];
   first.reply({ type: 'progress', value: .5 });

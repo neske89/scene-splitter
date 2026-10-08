@@ -193,7 +193,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
  <section class="panel">
   <div class="panel-heading"><h2><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-sparkles"/></svg>Obrada slike</h2><label class="ai-switch"><input id="aiEnabled" type="checkbox" checked><span id="aiEnabledLabel">Uključeno</span></label></div>
   <label class="field processing-mode" for="processingMode">Način obrade<select id="processingMode"><option value="photo">AI za slike (ESRGAN)</option><option value="text">Očuvaj slova (bez AI)</option></select></label>
-  <label class="field processing-mode" for="aiProfile">Model<select id="aiProfile"><option value="auto">Automatski</option><option value="slim">ESRGAN Slim</option><option value="medium">ESRGAN Medium</option></select></label>
+  <label class="field processing-mode" for="aiProfile">Model<select id="aiProfile"><option value="auto">Automatski</option><option value="slim">ESRGAN Slim · telefon</option><option value="medium">ESRGAN Medium · telefon</option><option value="thick">ESRGAN Thick · zahtevan</option><option value="real-general">Real-ESRGAN · fotografije · zahtevan</option><option value="real-anime">Real-ESRGAN · ilustracije · zahtevan</option></select></label>
   <div class="panel-actions"><button id="previewAI" class="primary" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-compare"/></svg><span id="previewLabel">Uporedi AI rezultat</span></button><button id="cancelAI" class="secondary" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg>Prekini</button></div>
   <p class="hint panel-note"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg><span id="processingHint">AI obrađuje sliku prema ciljnoj veličini za štampu. Lokalni modeli rade 2× ili 4×; ako je potrebno više, ostatak se uvećava bez AI. Tekst može biti izmenjen.</span></p>
   <p id="aiNotice" class="status" role="alert" hidden></p>
@@ -261,6 +261,11 @@ const EN={
   'Smanji':'Zoom out','Uvećaj':'Zoom in','Obrada slike':'Image processing','Uključeno':'On','Isključeno':'Off',
   'Način obrade':'Processing mode','AI za slike (ESRGAN)':'AI for images (ESRGAN)','Očuvaj slova (bez AI)':'Preserve letters (no AI)',
   'Automatski':'Automatic','Uporedi AI rezultat':'Compare AI result','Uporedi rezultat':'Compare result','Prekini':'Cancel',
+  'ESRGAN Slim · telefon':'ESRGAN Slim · phone','ESRGAN Medium · telefon':'ESRGAN Medium · phone',
+  'ESRGAN Thick · zahtevan':'ESRGAN Thick · demanding','Real-ESRGAN · fotografije · zahtevan':'Real-ESRGAN · photos · demanding',
+  'Real-ESRGAN · ilustracije · zahtevan':'Real-ESRGAN · illustrations · demanding',
+  'ESRGAN Thick može raditi 2×, 4× ili 8×. Zahteva mnogo memorije i nije prilagođen telefonima. Tekst se može promeniti.':'ESRGAN Thick can run at 2×, 4× or 8×. It needs substantial memory and is not suited to phones. Text may change.',
+  'Real-ESRGAN radi 4×. Zahteva mnogo vremena i memorije i nije prilagođen telefonima. Tekst se može promeniti.':'Real-ESRGAN runs at 4×. It needs substantial time and memory and is not suited to phones. Text may change.',
   'AI obrađuje sliku prema ciljnoj veličini za štampu. Lokalni modeli rade 2× ili 4×; ako je potrebno više, ostatak se uvećava bez AI. Tekst može biti izmenjen.':'AI processes the image for the selected print size. Local models use 2× or 4×; any further enlargement uses regular interpolation. Text may change.',
   'Uvećava postojeće piksele bez AI rekonstrukcije i bez prepisivanja teksta. Slova neće dobiti detalje kojih nema na originalu.':'Enlarges existing pixels without AI reconstruction or retyping text. Letters cannot gain details missing from the original.',
   'AI bira lokalni 2× ili 4× model prema ciljnoj veličini. Kada cilj traži više, ostatak se uvećava bez AI. Tekst može biti izmenjen; proveri pregled.':'AI selects a local 2× or 4× model based on target size. Any further enlargement uses regular interpolation. Text may change; inspect the preview.',
@@ -322,6 +327,7 @@ const EN={
   'Pripremam delove slike ({count})…':'Preparing image parts ({count})…',
   'Pakujem ZIP arhivu…':'Packing ZIP archive…','ZIP je spreman. Broj delova: {count}.':'ZIP is ready. Number of parts: {count}.',
   'AI rezultat je prevelik za ovaj uređaj. Izaberi 2× ili manji okvir scene.':'The AI result is too large for this device. Choose 2× or a smaller frame.',
+  'AI rezultat je prevelik za ovaj uređaj. Izaberi manji okvir scene ili ciljnu veličinu.':'The AI result is too large for this device. Choose a smaller part or target size.',
   'Ovaj pregledač ne podržava lokalnu AI obradu. Izaberi izvoz bez AI.':'This browser does not support local AI processing. Choose export without AI.',
   'Lokalni AI nije pokrenut. Proveri učitavanje modela ili izaberi izvoz bez AI.':'Local AI did not start. Check model loading or export without AI.',
   'AI obrada je već u toku.':'AI processing is already running.','Izvoz slike nije uspeo':'Image export failed',
@@ -474,7 +480,7 @@ function updateUI(){
   $('#aiEnabledLabel').textContent=tr(textMode?'Bez AI':enabled?'Uključeno':'Isključeno');
   aiProfile.disabled=exporting||textMode;
   $('#previewLabel').textContent=tr(textMode?'Uporedi rezultat':'Uporedi AI rezultat');
-  $('#processingHint').textContent=tr(textMode?'Uvećava postojeće piksele bez AI rekonstrukcije i bez prepisivanja teksta. Slova neće dobiti detalje kojih nema na originalu.':'AI bira lokalni 2× ili 4× model prema ciljnoj veličini. Kada cilj traži više, ostatak se uvećava bez AI. Tekst može biti izmenjen; proveri pregled.');
+  $('#processingHint').textContent=tr(textMode?'Uvećava postojeće piksele bez AI rekonstrukcije i bez prepisivanja teksta. Slova neće dobiti detalje kojih nema na originalu.':aiProfile.value==='thick'?'ESRGAN Thick može raditi 2×, 4× ili 8×. Zahteva mnogo memorije i nije prilagođen telefonima. Tekst se može promeniti.':String(aiProfile.value||'').startsWith('real-')?'Real-ESRGAN radi 4×. Zahteva mnogo vremena i memorije i nije prilagođen telefonima. Tekst se može promeniti.':'AI bira lokalni 2× ili 4× model prema ciljnoj veličini. Kada cilj traži više, ostatak se uvećava bez AI. Tekst može biti izmenjen; proveri pregled.');
   $('#showScene').disabled=exporting||!img;$('#downloadCompared').disabled=exporting||!img;
   $('#chooseFileCanvas').disabled=exporting;
   $('#removeImage').hidden=!img;$('#removeImage').disabled=exporting||!img;
@@ -831,7 +837,7 @@ function exportCanvas(c){
 function previewCanvas(c){
   const original=cropCanvas(c),target=Number(exportSize.value);
   if(target)return fitExport(original,target,target);
-  if(processingMode.value==='photo'&&aiActive)return fitExport(original,original.width*2,original.height*2);
+  if(processingMode.value==='photo'&&aiActive){const scale=String(aiProfile.value||'').startsWith('real-')?4:2;return fitExport(original,original.width*scale,original.height*scale)}
   return original;
 }
 function fitExport(original,targetWidth=Number(exportSize.value),targetHeight=targetWidth){
@@ -867,9 +873,12 @@ function aiPlan(c){
   const width=Math.round(c.x1-c.x0),height=Math.round(c.y1-c.y0),target=Number(exportSize.value),longSide=Math.max(width,height);
   if(target&&longSide>=target)return {scale:0};
   const required=target?target/longSide:2;
-  let scale=required>2?4:2,options=SceneAI.settings(aiProfile.value,scale);
+  const profile=aiProfile.value||'auto';
+  let scale=profile.startsWith('real-')?4:required>4&&profile==='thick'?8:required>2?4:2;
+  let options=SceneAI.settings(profile,scale);
   const fits=s=>width*height*s*s<=options.maxPixels&&width*s<=8192&&height*s<=8192;
-  if(scale===4&&!fits(4)){scale=2;options=SceneAI.settings(aiProfile.value,scale)}
+  if(profile==='thick'&&scale===8&&!fits(8)){scale=4;options=SceneAI.settings(profile,scale)}
+  if(!profile.startsWith('real-')&&scale===4&&!fits(4)){scale=2;options=SceneAI.settings(profile,scale)}
   if(!fits(scale))throw Error('AI korak je prevelik za ovaj uređaj. Izaberi manji deo slike ili režim za očuvanje slova.');
   return {scale,options,interpolated:target>longSide*scale};
 }

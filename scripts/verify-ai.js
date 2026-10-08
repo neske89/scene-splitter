@@ -10,6 +10,7 @@ async function main() {
   const requests = [], messages = [];
   const server = http.createServer((request, response) => {
     requests.push(request.url);
+    response.setHeader('Connection', 'close');
     const relative = request.url.slice('/scene-splitter/'.length);
     if (!request.url.startsWith('/scene-splitter/vendor/') || relative.includes('..')) { response.writeHead(404); response.end(); return; }
     const file = path.join(root, relative);
@@ -50,7 +51,7 @@ async function main() {
   const tf = context.tf;
   let id = 0;
   async function infer(family, scale) {
-    const width = 20, height = 17, pixels = new Uint8Array(width * height * 4);
+    const width = process.env.AI_TEST_WIDE ? 70 : 20, height = 17, pixels = new Uint8Array(width * height * 4);
     for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
       pixels[i] = x * 12; pixels[i + 1] = y * 15; pixels[i + 2] = (x + y) % 2 ? 220 : 30; pixels[i + 3] = 255;
@@ -58,7 +59,7 @@ async function main() {
     const requestId = ++id, start = Date.now();
     await self.onmessage({ data: { id: requestId, width, height, pixels: pixels.buffer, family, scale, patchSize: 16 } });
     const error = messages.find(message => message.id === requestId && message.type === 'error');
-    assert(!error, error?.message);
+    assert(!error, `${error?.message}\nRequests: ${requests.slice(-8).join(', ')}`);
     const result = messages.find(message => message.id === requestId && message.type === 'result');
     assert(result, 'Worker did not return an image');
     assert.deepStrictEqual([result.width, result.height], [width * scale, height * scale]);
@@ -71,17 +72,19 @@ async function main() {
     console.log(`${family} ${scale}×: real local inference, multiple padded patches, ${result.width} × ${result.height}, ${Date.now() - start} ms: OK`);
   }
   try {
-    for (const family of ['slim', 'medium']) for (const scale of [2, 4]) await infer(family, scale);
+    if (process.env.AI_TEST_FAMILY) { for (const family of process.env.AI_TEST_FAMILY.split(',')) await infer(family, Number(process.env.AI_TEST_SCALE || 4)); return; }
+    for (const family of ['slim', 'medium', 'thick']) for (const scale of (family === 'thick' ? [2, 4, 8] : [2, 4])) await infer(family, scale);
+    for (const family of ['real-general', 'real-anime']) await infer(family, 4);
     const tensorCount = tf.memory().numTensors, requestCount = requests.length;
-    await infer('medium', 4);
+    await infer('real-anime', 4);
     assert.strictEqual(requests.length, requestCount, 'A cached model was re-downloaded');
     assert.strictEqual(tf.memory().numTensors, tensorCount, 'Repeated inference leaked tensors');
     await self.onmessage({ data: { id: ++id, width: 100000, height: 100000, family: 'slim', scale: 4, pixels: new ArrayBuffer(0) } });
     assert(messages.some(message => message.id === id && message.type === 'error'));
     assert(requests.every(url => url.startsWith('/scene-splitter/vendor/models/')));
-    console.log('All four vendored models, no external fetches, model reuse, tensor cleanup and oversized-input rejection: OK');
+    console.log('All nine vendored models, no external fetches, model reuse, tensor cleanup and oversized-input rejection: OK');
   } finally {
-    await vm.runInContext('upscaler?.dispose()', context);
+    await vm.runInContext('upscaler?.dispose(); graphModel?.dispose()', context);
     global.fetch = realFetch;
     await new Promise(resolve => server.close(resolve));
   }

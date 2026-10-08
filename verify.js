@@ -505,6 +505,13 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
     assert.deepStrictEqual(calls.at(-1),[20,15,4]);
     assert.deepStrictEqual(blobCalls.at(-1),{width:size,height:size,mime:'image/png',quality:.98});
   }
+  vm.runInContext('crops[0]={x0:0,y0:0,x1:500,y1:500}',context);
+  elements.get('#aiProfile').value='thick';
+  assert.strictEqual(vm.runInContext('aiPlan(crops[0]).scale',context),8);
+  elements.get('#aiProfile').value='real-general';
+  assert.strictEqual(vm.runInContext('aiPlan(crops[0]).scale',context),4);
+  elements.get('#aiProfile').value='auto';
+  vm.runInContext('crops[0]={x0:10,y0:20,x1:30,y1:35}',context);
   elements.get('#exportSize').value='original';elements.get('#exportFormat').value='png';
   const start=calls.length;
   const files=await vm.runInContext('makeFiles()',context);

@@ -12,10 +12,10 @@ fs.mkdirSync(path.join(root, 'vendor/licenses'), { recursive: true });
 fs.copyFileSync(path.join(__dirname, 'tensorflow-LICENSE.txt'), path.join(root, 'vendor/licenses/tensorflow.txt'));
 copy('upscaler/dist/browser/umd/upscaler.min.js', 'upscaler.min.js');
 copy('upscaler/LICENSE', 'licenses/upscaler.txt');
-for (const family of ['slim', 'medium']) {
+for (const family of ['slim', 'medium', 'thick']) {
   const pkg = `@upscalerjs/esrgan-${family}`;
   copy(`${pkg}/LICENSE`, `licenses/esrgan-${family}.txt`);
-  for (const scale of [2, 4]) {
+  for (const scale of (family === 'thick' ? [2, 4, 8] : [2, 4])) {
     copy(`${pkg}/dist/umd/models/esrgan-${family}/src/x${scale}/index.min.js`, `models/${family}/x${scale}/definition.js`);
     const model = JSON.parse(fs.readFileSync(path.join(root, 'node_modules', pkg, `models/x${scale}/model.json`)));
     copy(`${pkg}/models/x${scale}/model.json`, `models/${family}/x${scale}/model.json`);
@@ -24,4 +24,4 @@ for (const family of ['slim', 'medium']) {
     }
   }
 }
-console.log('Vendored pinned TensorFlow.js, UpscalerJS and slim/medium 2×/4× models.');
+console.log('Vendored pinned TensorFlow.js, UpscalerJS and ESRGAN 2×/4×/8× models.');
