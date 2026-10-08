@@ -60,12 +60,17 @@ for (const size of [2048, 3072, 4096]) {
 vm.runInContext('crops[0].x0=25', context);
 assert.strictEqual(vm.runInContext('crops[1].x0', context), 0);
 elements.get('#overlayScene').onclick();
-assert.strictEqual(elements.get('#overlayLabel').textContent,'Ukloni sloj');
-assert.deepStrictEqual(fillRects.at(-1),{args:[25,30,95,120],style:'rgba(0,100,255,.25)'});
+assert.strictEqual(elements.get('#overlayLabel').textContent,'Isključi isticanje');
+assert.deepStrictEqual(fillRects.at(-1),{args:[25,30,95,120],style:'rgba(12,22,38,.65)'});
+assert.strictEqual(vm.runInContext('hit({x:25,y:60})',context),null);
+assert.strictEqual(vm.runInContext('alignmentHit({x:25,y:60})',context),null);
+let marks=textCalls.length;vm.runInContext('draw()',context);
+assert.strictEqual(textCalls.length,marks);
 vm.runInContext('exportCanvas(crops[0])',context);
 assert.strictEqual(fillRects.at(-1).style,'#fff');
 elements.get('#overlayScene').onclick();
-assert.strictEqual(elements.get('#overlayLabel').textContent,'Dodaj sloj');
+assert.strictEqual(elements.get('#overlayLabel').textContent,'Istakni ivice');
+assert.notStrictEqual(vm.runInContext('hit({x:25,y:60})',context),null);
 assert.strictEqual(vm.runInContext('sceneAt({x:30,y:40})', context), 0);
 const archive = vm.runInContext("zipBlob([{name:'scene-01.jpg',data:new Uint8Array([1,2,3])}])", context);
 archive.arrayBuffer().then(buffer => {
@@ -135,7 +140,7 @@ console.log('edge priority, touch selection, independent drag, interrupted gestu
   let pending;
   handlers.install({waitUntil:p=>pending=p});await pending;
   handlers.activate({waitUntil:p=>pending=p});await pending;
-  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11','scene-splitter-v12','scene-splitter-v13','scene-splitter-v14','scene-splitter-v15','scene-splitter-v16']);
+  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11','scene-splitter-v12','scene-splitter-v13','scene-splitter-v14','scene-splitter-v15','scene-splitter-v16','scene-splitter-v17']);
   let response,background;
   handlers.fetch({request:{method:'GET',url:'https://neske89.github.io/scene-splitter/',mode:'navigate'},respondWith:p=>response=p,waitUntil:p=>background=p});
   assert((await response).ok);await background;assert.deepStrictEqual(stored,['./index.html']);
@@ -451,13 +456,18 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   assert.strictEqual(elements.get('#compareFrame').style.width,'1150px');
   assert.strictEqual(elements.get('#compareFrame').style.height,'575px');
   assert(elements.get('#aiResultInfo').textContent.includes('20 × 15 px → 40 × 30 px · PNG · AI 2×'));
+  assert.strictEqual(elements.get('#openFullImage').textContent,'Otvori AI rezultat u punoj veličini');
   const enhancedURL=elements.get('#comparisonImage').src;
   elements.get('#showOriginal').onclick();assert.notStrictEqual(elements.get('#comparisonImage').src,enhancedURL);
+  assert.strictEqual(elements.get('#openFullImage').textContent,'Otvori original u punoj veličini');
   elements.get('#openFullImage').onclick();
   const originalTab=opened.at(-1).url;
   elements.get('#compareSlider').value='75';elements.get('#compareSlider').oninput();
   assert.strictEqual(elements.get('#comparisonImage').src,enhancedURL);
   assert.strictEqual(elements.get('#compareFrame').style['--split'],'75%');
+  assert.strictEqual(elements.get('#openFullImage').textContent,'Otvori AI rezultat u punoj veličini');
+  elements.get('#compareSlider').value='100';elements.get('#compareSlider').oninput();
+  assert.strictEqual(elements.get('#openFullImage').textContent,'Otvori original u punoj veličini');
   assert.strictEqual(elements.get('#comparisonTitle').textContent,'Deo 1');
   elements.get('#showEnhanced').onclick();assert.strictEqual(elements.get('#comparisonImage').src,enhancedURL);
   elements.get('#openFullImage').onclick();
