@@ -4,6 +4,7 @@ const vm = require('vm');
 
 const html = fs.readFileSync(__dirname + '/index.html', 'utf8');
 assert.strictEqual((html.match(/id="exportSize"/g)||[]).length,1);
+assert(html.indexOf('>Izvoz slika</h2>')<html.indexOf('id="exportSize"'));
 const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 const elements = new Map();
 const drawCalls = [];
@@ -135,12 +136,12 @@ console.log('edge priority, touch selection, independent drag, interrupted gestu
   fs.writeFileSync('/tmp/scene-splitter-verify.zip',Buffer.from(await archive.arrayBuffer()));
   const handlers={},deleted=[],stored=[];
   const cache={addAll:async assets=>assert(assets.includes('./index.html')&&assets.includes('./grid-detection.js')),put:async(key,response)=>stored.push(key)};
-  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io',href:'https://neske89.github.io/scene-splitter/sw.js'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11','scene-splitter-v12','scene-splitter-v13','scene-splitter-v14','scene-splitter-v15','scene-splitter-v16','scene-splitter-v17','unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
+  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io',href:'https://neske89.github.io/scene-splitter/sw.js'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>[...Array.from({length:17},(_,i)=>'scene-splitter-v'+(i+2)),'unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
   vm.runInContext(fs.readFileSync(__dirname+'/sw.js','utf8'),swContext);
   let pending;
   handlers.install({waitUntil:p=>pending=p});await pending;
   handlers.activate({waitUntil:p=>pending=p});await pending;
-  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11','scene-splitter-v12','scene-splitter-v13','scene-splitter-v14','scene-splitter-v15','scene-splitter-v16','scene-splitter-v17']);
+  assert.deepStrictEqual(deleted,Array.from({length:17},(_,i)=>'scene-splitter-v'+(i+2)));
   let response,background;
   handlers.fetch({request:{method:'GET',url:'https://neske89.github.io/scene-splitter/',mode:'navigate'},respondWith:p=>response=p,waitUntil:p=>background=p});
   assert((await response).ok);await background;assert.deepStrictEqual(stored,['./index.html']);
@@ -421,7 +422,7 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   assert.strictEqual(vm.runInContext('aiActive',context),false);assert.strictEqual(elements.get('#previewAI').disabled,true);
   elements.get('#aiEnabled').checked=true;elements.get('#aiEnabled').onchange();
   assert.strictEqual(vm.runInContext('aiActive',context),true);assert.strictEqual(elements.get('#aiEnabledLabel').textContent,'Uključeno');
-  elements.get('#aiProfile').value='auto';elements.get('#exportFormat').value='png';elements.get('#exportSize').value='original';
+  elements.get('#processingMode').value='photo';elements.get('#aiProfile').value='auto';elements.get('#exportFormat').value='png';elements.get('#exportSize').value='original';
   await vm.runInContext('saveScene(0)',context);
   assert.strictEqual(elements.get('#loadingOverlay').hidden,true);
   assert.strictEqual(elements.get('#appShell').inert,false);
@@ -445,6 +446,27 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   const files=await vm.runInContext('makeFiles()',context);
   assert.strictEqual(files.length,16);assert.strictEqual(calls.length-start,16);
   assert(files.every(file=>file.name.endsWith('.png')));
+  // The plain part preview uses the dimensions and encoding chosen for export.
+  const beforePlain=calls.length;
+  await elements.get('#showScene').onclick();
+  assert.strictEqual(calls.length,beforePlain);
+  assert.deepStrictEqual(blobCalls.at(-1),{width:40,height:30,mime:'image/png',quality:.98});
+  assert.strictEqual(elements.get('#compareFrame').style.width,'40px');
+  assert.strictEqual(elements.get('#openFullImage').textContent,'Otvori deo u punoj veličini');
+  elements.get('#closeComparison').onclick();
+  elements.get('#aiEnabled').checked=false;elements.get('#aiEnabled').onchange();
+  elements.get('#exportSize').value='2048';elements.get('#exportFormat').value='jpeg';
+  await elements.get('#showScene').onclick();
+  assert.strictEqual(calls.length,beforePlain);
+  assert.deepStrictEqual(blobCalls.at(-1),{width:2048,height:2048,mime:'image/jpeg',quality:.98});
+  assert.strictEqual(vm.runInContext('comparisonSize.width',context),2048);
+  assert(elements.get('#aiResultInfo').textContent.includes('2048 × 2048 px · JPEG · Bez AI'));
+  elements.get('#openFullImage').onclick();
+  assert.strictEqual(opened.at(-1).target,'_blank');
+  elements.get('#closeComparison').onclick();
+  elements.get('#aiEnabled').checked=true;elements.get('#aiEnabled').onchange();
+  elements.get('#exportSize').value='original';elements.get('#exportFormat').value='png';
+  const releasedBeforeAI=revoked.length;
   // AI preview and source preview use separate full-resolution images.
   await elements.get('#previewAI').onclick();
   assert.strictEqual(elements.get('#aiComparison').hidden,false);
@@ -475,7 +497,7 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   assert.strictEqual(opened.at(-1).features,'noopener');
   assert.notStrictEqual(opened.at(-1).url,enhancedURL);
   assert.notStrictEqual(opened.at(-1).url,originalTab);
-  elements.get('#comparisonBackdrop').onclick();assert.strictEqual(revoked.length,2);
+  elements.get('#comparisonBackdrop').onclick();assert.strictEqual(revoked.length,releasedBeforeAI+2);
   assert.strictEqual(elements.get('#aiComparison').hidden,true);
   assert.strictEqual(elements.get('#comparisonBackdrop').hidden,true);
   assert.strictEqual(document.body.style.overflow,'');
@@ -494,7 +516,7 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   assert.strictEqual(downloads.at(-1).blob,compared);
   assert.strictEqual(downloads.at(-1).name,'deo-01.jpg');
   assert.strictEqual(calls.length,aiCount);
-  elements.get('#closeComparison').onclick();assert.strictEqual(revoked.length,4);
+  elements.get('#closeComparison').onclick();assert.strictEqual(revoked.length,releasedBeforeAI+4);
   // Text mode upscales without loading an AI model and previews the selected format.
   elements.get('#processingMode').value='text';elements.get('#processingMode').onchange();
   const textCalls=calls.length;
