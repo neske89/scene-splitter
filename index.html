@@ -165,7 +165,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
  <div class="panel-heading"><h2>Kako radi i privatnost</h2><button id="closePrivacy" aria-label="Zatvori"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg></button></div>
  <p>Sve slike obrađuju se na tvom uređaju i ne šalju se na server. Lokalni AI model preuzima se sa ovog sajta pri prvoj upotrebi, a zatim se čuva za sledeću obradu.</p>
  <p>Automatska detekcija traži svetle i tamne razmake između delova slike. Ako razmaci nisu jasni, izaberi ručnu mrežu. Promena mreže ponovo postavlja sve granice.</p>
- <p>Dupli klik fokusira deo slike. Žuti kružići menjaju granice, a zelene i plave strelice poravnavaju ivice sa susednim delovima. U prikazu svih granica moguće je samo poravnanje; klik na deo vraća uređivanje.</p>
+ <p>Dupli klik fokusira deo slike. Kada je cela slika vidljiva, prevuci unutrašnjost dela da pomeriš okvir; kada je uvećana, prevlačenje pomera pogled. Žuti kružići menjaju granice, a zelene i plave strelice poravnavaju ivice sa susednim delovima. U prikazu svih granica moguće je samo poravnanje; klik na deo vraća uređivanje.</p>
  <p>Kvadratni izvoz čuva ceo okvir i dodaje bele margine. AI procenjuje detalje i može promeniti teksture ili slova: proveri poređenje pre štampe.</p>
 </section>
 <div class="workspace">
@@ -586,6 +586,20 @@ function sceneAt(p){
   for(let i=0;i<crops.length;i++){const c=crops[i];if(p.x>=c.x0&&p.x<=c.x1&&p.y>=c.y0&&p.y<=c.y1)return i}
   return-1;
 }
+function imageFitsView(){
+  if(!img)return false;
+  const canvas=cv.getBoundingClientRect(),view=viewer.getBoundingClientRect();
+  const x=canvas.left+canvasOffset/cv.width*canvas.width,y=canvas.top+canvasOffset/cv.height*canvas.height;
+  const right=x+img.naturalWidth/cv.width*canvas.width,bottom=y+img.naturalHeight/cv.height*canvas.height;
+  return x>=view.left-1&&y>=view.top-1&&right<=view.left+view.width+1&&bottom<=view.top+view.height+1;
+}
+function moveDrag(p){
+  const c=crops[selected],start=drag.crop,width=start.x1-start.x0,height=start.y1-start.y0;
+  const x=Math.max(0,Math.min(img.naturalWidth-width,start.x0+Math.round(p.x-drag.x)));
+  const y=Math.max(0,Math.min(img.naturalHeight-height,start.y0+Math.round(p.y-drag.y)));
+  c.x0=x;c.x1=x+width;c.y0=y;c.y1=y+height;
+  dirty.add(selected);draw();updateCard(selected);
+}
 function hit(p){
   if(showBoundaries||sceneOverlay)return null;
   const c=crops[selected],r=cv.getBoundingClientRect(),tx=Math.min(26*cv.width/r.width,(c.x1-c.x0)*.3),ty=Math.min(26*cv.height/r.height,(c.y1-c.y0)*.3);
@@ -611,12 +625,18 @@ viewer.onpointerdown=e=>{
     drag=scene>=0?{type:'scene',scene,pointerId:e.pointerId,moved:false,x:e.clientX,y:e.clientY,px:panX,py:panY}:{type:'pan',x:e.clientX,y:e.clientY,px:panX,py:panY};return;
   }
   if(h){drag={type:'edge',h};return}
-  if(si>=0&&si!==selected){const wasFocused=focusedScene!==null;select(si);if(wasFocused)lastFocusTransfer={scene:si,at:Date.now()};drag={type:'pan',x:e.clientX,y:e.clientY,px:panX,py:panY};return}
+  if(si>=0&&si!==selected){const wasFocused=focusedScene!==null;select(si);if(wasFocused)lastFocusTransfer={scene:si,at:Date.now()}}
+  if(si>=0&&!sceneOverlay&&imageFitsView()){
+    const point=pt(e);drag={type:'move',x:point.x,y:point.y,crop:{...crops[selected]}};return;
+  }
   drag={type:'pan',x:e.clientX,y:e.clientY,px:panX,py:panY};
 };
 viewer.onpointermove=e=>{
   if(exporting)return;
-  if(!pointers.has(e.pointerId)){viewer.style.cursor=img&&alignmentHit(pt(e))?'pointer':'default';return}
+  if(!pointers.has(e.pointerId)){
+    const p=img?pt(e):null;
+    viewer.style.cursor=p&&alignmentHit(p)?'pointer':p&&!showBoundaries&&!sceneOverlay&&imageFitsView()&&sceneAt(p)>=0&&!hit(p)?'grab':'default';return;
+  }
   pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(pointers.size===2&&pinch){
     const a=[...pointers.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
@@ -633,6 +653,7 @@ viewer.onpointermove=e=>{
     return;
   }
   if(drag.type==='align'){if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8)drag.moved=true;return}
+  if(drag.type==='move'){moveDrag(pt(e));return}
   if(drag.type!=='edge'||showBoundaries)return;
   const p=pt(e),c=crops[selected],min=minimumCropSize(),h=drag.h;
   if(aspectLocks.has(selected)){resizeLocked(p,h)}else{
