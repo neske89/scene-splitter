@@ -10,7 +10,7 @@ All image processing happens locally in the browser.
 
 Upload an image, adjust any of the independent scene rectangles, and choose Original or a square 2048, 3072, or 4096 px JPEG export. Preview and ZIP use each scene's current crop. Square export preserves the full crop without stretching by adding white margins when needed. Upscaling interpolates pixels and cannot recover missing source detail.
 
-Double-click a scene in the main preview to select and focus it. Double-click the focused scene again, or press “Ukloni fokus”, to return to the full view. The preview includes padding around the source image so outer-edge handles remain visible. Toggle “Prikaži sve granice” to show the other scenes in white. To align the selected scene, choose a reference scene and Top, Bottom, Left or Right; the matching coordinate is copied to the selected scene only. Alignments that would cross its opposite edge are rejected.
+Double-click a scene in the main preview to select and focus it. While focus is active, a click on another scene focuses that scene. Double-click the focused scene again, or press “Ukloni fokus”, to restore the zoom and position from before focus. The preview includes padding around the source image so outer-edge handles remain visible. Toggle “Prikaži sve granice” to show the other scenes in white without resize handles. To align the selected scene, choose a reference scene and Top, Bottom, Left or Right; the matching coordinate is copied to the selected scene only. Alignments that would cross its opposite edge are rejected.
 
 Run `node verify.js` for crop, focus, alignment, export and service-worker checks.
 
@@ -18,7 +18,7 @@ Enter original-pixel width and height and use “Primeni dimenzije” to resize 
 
 Every yellow handle has a scene number at 55% text opacity; the handle remains opaque. Alternating pale green/blue arrow handles placed inside each scene between the resize handles copy that edge from the adjacent grid scene: left/right arrows on horizontal edges and up/down arrows on vertical edges. Directions without a neighbour are omitted. Click an arrow to align; dragging, cancellation, and pinch gestures do not trigger alignment. On screens at least 1000 px wide the controls sit to the right of the canvas; narrower screens retain the controls above it.
 
-The all-boundaries overview uses pale-yellow outlines and disables resizing, manual dimensions and aspect changes. Arrow clicks align a scene while retaining overview; clicking a scene or its yellow handle returns to single-scene editing. Panning, pinching and cancelled clicks keep overview open.
+The all-boundaries overview uses pale-yellow outlines, hides yellow resize handles, and disables resizing, manual dimensions and aspect changes. Arrow clicks align a scene while retaining overview; clicking a scene returns to single-scene editing. Panning, pinching and cancelled clicks keep overview open.
 
 
 ## Local AI export
@@ -45,4 +45,4 @@ Choose Ručno, enter 1–12 columns and rows, then Primeni mrežu. Manual mode r
 
 The light interface follows `ui.png`: a large image canvas with the scene gallery below it, and a desktop sidebar with upload, grid, crop, zoom, AI and export cards. On smaller screens the canvas and controls stack vertically. The preview fits within the viewport height while exports retain their original dimensions. Drag and drop or choose an image up to 50 MB. Privacy and usage help are available from the header; extra alignment controls are under Poravnanje i pomoć.
 
-Prikaži scenu opens the original crop in a floating preview. Uporedi AI rezultat opens a before/after slider with full-resolution original and locally enhanced images; use the slider, Original or AI rezultat, then download the scene. Escape or the close button dismisses the preview. The AI toggle remembers the previous 2×/4× scale. The gallery opens after image loading and can be closed and reopened independently from the boundary overview.
+Prikaži scenu opens the original crop in a floating preview. Uporedi AI rezultat opens a before/after slider with full-resolution original and locally enhanced images; use the slider, Original or AI rezultat, then download the scene. Escape or the close button dismisses the preview. The AI toggle remembers the previous 2×/4× scale. The gallery stays below the canvas; its heading folds or unfolds the scene cards.

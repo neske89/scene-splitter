@@ -99,10 +99,15 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 .empty-canvas p{font-size:13px;max-width:300px;line-height:1.6;margin:0}
 #cropInfo{margin:8px 2px 0;font-size:11px}
 .gallery{border:1px solid #e0e7f2;border-radius:18px;background:#ffffffc7;padding:14px;margin-top:18px}
-.gallery-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px}
-.gallery-heading h2{font-size:18px}
-.gallery-heading h2 .icon{color:#0064ff}
-.gallery-heading button{font-size:12px;min-height:35px}
+.gallery-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px;cursor:pointer;list-style:none}
+.gallery-heading::-webkit-details-marker{display:none}
+.gallery-heading:focus-visible{outline:3px solid #7eafff;outline-offset:3px}
+.gallery-title{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:600}
+.gallery-title .icon{color:#0064ff}
+.gallery-toggle{display:flex;align-items:center;gap:6px;font-size:12px;color:#43516b}
+.gallery:not([open]) .gallery-heading{margin-bottom:0}
+.gallery:not([open]) .gallery-toggle .icon{transform:rotate(180deg)}
+.gallery:not([open]) .when-open,.gallery[open] .when-closed{display:none}
 .grid{display:grid;grid-auto-flow:column;grid-auto-columns:100px;gap:12px;overflow-x:auto;padding:3px 2px 5px;scrollbar-width:thin}
 .card{position:relative;min-width:0;border:0;text-align:center}
 .card img{width:100%;height:100px;object-fit:contain;background:#edf1f6;border-radius:8px;display:block;cursor:pointer;border:2px solid transparent}
@@ -139,7 +144,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 }
 @media(max-width:1100px){body{padding:20px}.upload-zone{gap:10px;padding:18px 12px}.upload-icon{display:none}.ai-options{gap:12px}.inline-field{gap:7px}}
 @media(max-width:999px){.canvas-panel{grid-row:1}.sidebar{grid-row:2}.viewer{min-height:250px}.app-header{gap:14px}.app-header .soft{font-size:12px}.app-header .soft span{max-width:100px}.sidebar{min-height:0}.comparison{left:50%}.privacy-panel{right:16px}}
-@media(max-width:550px){body{padding:16px 12px}h1{font-size:26px}.subtitle{font-size:13px}.app-header{margin-bottom:18px}.app-header .soft{min-width:38px;padding:9px}.app-header .soft span{display:none}.upload-zone{padding:16px 12px}.upload-copy strong{font-size:13px}.upload-copy p{font-size:11px}.upload-zone button{font-size:12px;padding:10px}.scene-nav{grid-template-columns:1fr 1.1fr 1fr;gap:6px}.scene-nav button{font-size:11px;gap:5px}.geometry{gap:8px}.zoomrow{gap:8px;grid-template-columns:auto 35px minmax(0,1fr) 35px 62px}.ai-options{gap:10px;grid-template-columns:1fr 1.2fr}.inline-field{flex-direction:column;align-items:stretch;gap:6px}.export-options{grid-template-columns:minmax(0,1fr) 85px}.gallery{padding:12px}.gallery-heading h2{font-size:16px}.grid{grid-auto-columns:92px}.card img{height:92px}.grid-controls{gap:8px}.grid-controls button{font-size:12px;padding:9px}.comparison{padding:16px}}
+@media(max-width:550px){body{padding:16px 12px}h1{font-size:26px}.subtitle{font-size:13px}.app-header{margin-bottom:18px}.app-header .soft{min-width:38px;padding:9px}.app-header .soft span{display:none}.upload-zone{padding:16px 12px}.upload-copy strong{font-size:13px}.upload-copy p{font-size:11px}.upload-zone button{font-size:12px;padding:10px}.scene-nav{grid-template-columns:1fr 1.1fr 1fr;gap:6px}.scene-nav button{font-size:11px;gap:5px}.geometry{gap:8px}.zoomrow{gap:8px;grid-template-columns:auto 35px minmax(0,1fr) 35px 62px}.ai-options{gap:10px;grid-template-columns:1fr 1.2fr}.inline-field{flex-direction:column;align-items:stretch;gap:6px}.export-options{grid-template-columns:minmax(0,1fr) 85px}.gallery{padding:12px}.gallery-title{font-size:16px}.grid{grid-auto-columns:92px}.card img{height:92px}.grid-controls{gap:8px}.grid-controls button{font-size:12px;padding:9px}.comparison{padding:16px}}
 </style>
 </head>
 <body>
@@ -170,7 +175,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
  </div>
  <div class="scene-actions"><button id="showScene" class="primary" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-eye"/></svg>Prikaži scenu</button><button id="boundaries" class="secondary" disabled aria-pressed="false">Prikaži sve granice</button></div>
  <div class="scene-nav"><button id="prev" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-arrow-left"/></svg>Prethodna</button><button id="focus" class="primary" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-focus"/></svg><span id="focusLabel">Fokusiraj</span></button><button id="next" disabled>Sledeća<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-arrow-right"/></svg></button></div>
- <div class="selection-info"><span id="sceneLabel" class="badge">Scena —</span><button id="split" class="soft" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-grid"/></svg>Galerija scena</button></div>
+ <div class="selection-info"><span id="sceneLabel" class="badge">Scena —</span></div>
  <div>
   <div class="geometry">
    <label class="field" for="cropWidth">Širina (px)<input id="cropWidth" type="number" min="1" step="1" disabled></label>
@@ -209,7 +214,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 <div class="canvas-panel">
  <div id="viewer" class="viewer"><div id="stage" class="stage"><canvas id="preview"></canvas></div><div id="emptyCanvas" class="empty-canvas"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-grid"/></svg><strong>Tvoja priča, scena po scena.</strong><p>Izaberi sliku da automatski pronađeš scene i prilagodiš njihove granice.</p></div></div>
  <p id="cropInfo" class="hint"></p>
- <section id="gallery" class="gallery" hidden aria-label="Galerija scena"><div class="gallery-heading"><h2><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-grid"/></svg><span id="galleryTitle">Sve scene</span></h2><button id="closeGallery" class="soft"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-up"/></svg>Zatvori prikaz</button></div><div id="grid" class="grid"></div></section>
+ <details id="gallery" class="gallery" open><summary class="gallery-heading"><span class="gallery-title"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-grid"/></svg><span id="galleryTitle">Sve scene (0)</span></span><span class="gallery-toggle"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-up"/></svg><span class="when-open">Zatvori prikaz</span><span class="when-closed">Otvori prikaz</span></span></summary><div id="grid" class="grid"></div></details>
  <section id="aiComparison" class="comparison" hidden role="dialog" aria-labelledby="comparisonTitle" tabindex="-1">
   <div class="comparison-heading"><h2 id="comparisonTitle">Scena</h2><button id="closeComparison" aria-label="Zatvori poređenje"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg></button></div>
   <div id="compareFrame" class="compare-frame">
@@ -229,7 +234,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 <script>
 const $=s=>document.querySelector(s);
 const file=$('#file'),cv=$('#preview'),ctx=cv.getContext('2d',{willReadFrequently:true});
-const detectBtn=$('#detect'),splitBtn=$('#split'),zipBtn=$('#zip'),status=$('#status'),grid=$('#grid');
+const detectBtn=$('#detect'),zipBtn=$('#zip'),status=$('#status'),grid=$('#grid');
 const viewer=$('#viewer'),stage=$('#stage'),zoomEl=$('#zoom'),plus=$('#plus'),minus=$('#minus'),resetZoom=$('#resetZoom');
 const prev=$('#prev'),next=$('#next'),focusBtn=$('#focus'),sceneLabel=$('#sceneLabel'),exportSize=$('#exportSize');
 const boundariesBtn=$('#boundaries'),alignScene=$('#alignScene'),alignEdge=$('#alignEdge'),alignBtn=$('#align');
@@ -242,7 +247,7 @@ const aspectLocks=new Map();
 const gridMode=$('#gridMode'),gridColsInput=$('#gridCols'),gridRowsInput=$('#gridRows'),applyGrid=$('#applyGrid');
 let gridCols=1,gridRows=1;
 let canvasOffset=0,showBoundaries=false;
-let img=null,crops=[],selected=0,focusedScene=null,zoom=1,panX=0,panY=0,drag=null,pointers=new Map(),pinch=null,dirty=new Set(),loadId=0,exporting=false;
+let img=null,crops=[],selected=0,focusedScene=null,focusSnapshot=null,lastFocusTransfer=null,zoom=1,panX=0,panY=0,drag=null,pointers=new Map(),pinch=null,dirty=new Set(),loadId=0,exporting=false;
 
 file.onchange=()=>loadFile(file.files[0]);
 $('#chooseFile').onclick=()=>file.click();
@@ -258,8 +263,8 @@ function loadFile(f){
     clearComparison();img=loaded;canvasOffset=Math.ceil(Math.max(img.naturalWidth,img.naturalHeight)*.05);
     cv.width=img.naturalWidth+canvasOffset*2;cv.height=img.naturalHeight+canvasOffset*2;
     drag=null;pinch=null;pointers.clear();dirty.clear();resetView();detect({newImage:true});
-    [detectBtn,splitBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls].forEach(x=>x.disabled=false);
-    updateUI();split();
+    [detectBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls].forEach(x=>x.disabled=false);
+    updateUI();
   };
   loaded.onerror=()=>{URL.revokeObjectURL(u);if(id===loadId)status.textContent='Slika nije učitana. Izaberi JPEG, PNG ili drugi podržani format.'};
   loaded.src=u;
@@ -268,7 +273,6 @@ const uploadZone=$('#uploadZone');
 uploadZone.ondragover=e=>{e.preventDefault();if(!exporting)uploadZone.classList.add('drag-over')};
 uploadZone.ondragleave=()=>uploadZone.classList.remove('drag-over');
 uploadZone.ondrop=e=>{e.preventDefault();uploadZone.classList.remove('drag-over');loadFile(e.dataTransfer.files[0])};
-$('#closeGallery').onclick=()=>{$('#gallery').hidden=true};
 $('#privacyToggle').onclick=()=>{const panel=$('#privacyPanel');panel.hidden=!panel.hidden;$('#privacyToggle').setAttribute('aria-expanded',String(!panel.hidden))};
 $('#closePrivacy').onclick=()=>{$('#privacyPanel').hidden=true;$('#privacyToggle').setAttribute('aria-expanded','false')};
 window.addEventListener('keydown',e=>{if(e.key==='Escape'){clearComparison();$('#closePrivacy').onclick()}});
@@ -294,7 +298,7 @@ function detect({newImage=false}={}){
   crops=result.crops.map(c=>({x0:Math.round(c.x0*img.naturalWidth/source.width),x1:Math.round(c.x1*img.naturalWidth/source.width),
     y0:Math.round(c.y0*img.naturalHeight/source.height),y1:Math.round(c.y1*img.naturalHeight/source.height)}));
   gridColsInput.value=gridCols;gridRowsInput.value=gridRows;
-  clearComparison();aspectLocks.clear();dirty.clear();selected=0;focusedScene=null;grid.innerHTML='';$('#gallery').hidden=true;draw();updateUI();
+  clearComparison();aspectLocks.clear();dirty.clear();selected=0;focusedScene=null;focusSnapshot=null;lastFocusTransfer=null;draw();updateUI();renderGallery();
   status.textContent=(manual?'Postavljena':'Procenjena')+' mreža '+gridCols+' × '+gridRows+' ('+crops.length+' scena). '+
     (!manual&&!result.hasGutters?'Nema jasnih razmaka; izaberi mrežu ručno ako slika sadrži više scena.':'Izaberi scenu i koriguj njen okvir.');
 }
@@ -327,7 +331,6 @@ function updateUI(){
   $('#showScene').disabled=exporting||!img;$('#downloadCompared').disabled=exporting||!img;
   $('#chooseFile').disabled=exporting;
   $('#cancelAI').disabled=!exporting||cancelRequested;
-  $('#closeGallery').disabled=exporting;
   $('#galleryTitle').textContent='Sve scene ('+crops.length+')';
   $('#exportSummary').textContent=img?crops.length+' scena · '+(exportSize.value==='original'?'Original'+(enabled?' '+aiScale.value+'×':''):exportSize.value+' × '+exportSize.value+' px')+' · '+(exportFormat.value==='jpeg'?'JPEG':'PNG')+' · AI '+(enabled?aiScale.value+'×':'isključen'):'Izaberi sliku da pripremiš scene za izvoz.';
   if(!exporting)zipBtn.textContent='Preuzmi ZIP'+(img?' ('+crops.length+' scena)':'');
@@ -354,13 +357,13 @@ function syncFocusButton(){
 function select(i,focus=false,leaveOverview=true){
   if(leaveOverview&&showBoundaries)setBoundaries(false);
   const next=Math.max(0,Math.min(crops.length-1,i));
-  if(next!==selected)focusedScene=null;
+  const wasFocused=focusedScene!==null;
   selected=next; draw(); updateUI(); markCards();
-  if(focus)focusScene();
+  if(focus||wasFocused)focusScene();
 }
 prev.onclick=()=>select(selected-1,true);
 next.onclick=()=>select(selected+1,true);
-focusBtn.onclick=()=>focusedScene===selected?resetView():focusScene();
+focusBtn.onclick=()=>focusedScene===selected?unfocusScene():focusScene();
 function setBoundaries(show){
   showBoundaries=show;drag=null;
   boundariesBtn.textContent=showBoundaries?'Sakrij ostale granice':'Prikaži sve granice';
@@ -439,9 +442,12 @@ function resizeLocked(p,handle){
 }
 viewer.ondblclick=e=>{
   if(!img||exporting)return;
+  if(lastFocusTransfer&&Date.now()-lastFocusTransfer.at<600){lastFocusTransfer=null;return}
+  lastFocusTransfer=null;
   const p=pt(e);if(alignmentHit(p))return;
   const i=sceneAt(p);
-  if(i>=0){if(i===selected&&focusedScene===i)resetView();else select(i,true)}
+  if(i<0)return;
+  if(i===selected&&focusedScene===i)unfocusScene();else select(i,true);
 };
 
 function visibleScenes(){return [...crops.keys()].filter(i=>i!==selected&&showBoundaries).concat(crops[selected]?selected:[])}
@@ -471,10 +477,6 @@ function alignmentHit(p){
   return null;
 }
 function yellowPoints(c){return [[c.x0,c.y0],[c.x1,c.y0],[c.x0,c.y1],[c.x1,c.y1],[(c.x0+c.x1)/2,c.y0],[(c.x0+c.x1)/2,c.y1],[c.x0,(c.y0+c.y1)/2],[c.x1,(c.y0+c.y1)/2]]}
-function yellowHit(p){
-  for(const i of visibleScenes().reverse())if(yellowPoints(crops[i]).some(([x,y])=>Math.hypot(p.x-x,p.y-y)<=dotSizes(i).yellow))return i;
-  return -1;
-}
 function arrowColor(index){return (Math.floor(index/gridCols)+index%gridCols)%2?'#a6cce8':'#b7dfba'}
 function drawDot(x,y,radius,color,text='',textOpacity=1){
   ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.fill();
@@ -495,7 +497,7 @@ function draw(){
     ctx.shadowColor='rgba(0,0,0,.9)';ctx.shadowBlur=i===selected?8:0;
     ctx.strokeRect(c.x0,c.y0,c.x1-c.x0,c.y1-c.y0);
     ctx.shadowBlur=0;
-    for(const [x,y] of yellowPoints(c))drawDot(x,y,sizes.yellow,'#ffd400',String(i+1),.55);
+    if(!showBoundaries)for(const [x,y] of yellowPoints(c))drawDot(x,y,sizes.yellow,'#ffd400',String(i+1),.55);
     for(const point of alignmentPoints(i))drawDot(point.x,point.y,sizes.green,arrowColor(i),point.arrow);
   }
   const c=crops[selected];
@@ -507,7 +509,6 @@ function draw(){
 }
 function applyTransform(){stage.style.transform=`translate(${panX}px,${panY}px) scale(${zoom})`;draw()}
 function setZoom(v,ax=viewer.clientWidth/2,ay=viewer.clientHeight/2){
-  focusedScene=null;syncFocusButton();
   const old=zoom;zoom=Math.max(1,Math.min(6,v));
   if(ax!==null&&old!==zoom){panX=ax-(ax-panX)*(zoom/old);panY=ay-(ay-panY)*(zoom/old)}
   if(zoom===1)panX=panY=0;
@@ -519,11 +520,12 @@ function fitPreview(){
   const height=Math.min(maxHeight,width*cv.height/cv.width);
   viewer.style.height=height+'px';stage.style.width=Math.min(width,height*cv.width/cv.height)+'px';
 }
-function resetView(){fitPreview();panX=panY=0;setZoom(1)}
+function resetView(){focusedScene=null;focusSnapshot=null;lastFocusTransfer=null;syncFocusButton();fitPreview();panX=panY=0;setZoom(1)}
 plus.onclick=()=>setZoom(zoom+.25);minus.onclick=()=>setZoom(zoom-.25);resetZoom.onclick=resetView;zoomEl.oninput=()=>setZoom(+zoomEl.value/100);
 
 function focusScene(){
   const c=crops[selected],r=viewer.getBoundingClientRect();if(!c)return;
+  if(!focusSnapshot)focusSnapshot={zoom,panX,panY};
   const baseW=stage.clientWidth||r.width,baseH=baseW*cv.height/cv.width;
   const sw=(c.x1-c.x0)/cv.width*baseW,sh=(c.y1-c.y0)/cv.height*baseH;
   const margin=Math.min(48,r.width*.1,r.height*.1);
@@ -531,6 +533,12 @@ function focusScene(){
   const cx=(canvasOffset+(c.x0+c.x1)/2)/cv.width*baseW,cy=(canvasOffset+(c.y0+c.y1)/2)/cv.height*baseH;
   panX=r.width/2-cx*zoom;panY=r.height/2-cy*zoom;
   focusedScene=selected;syncFocusButton();
+  zoomEl.value=Math.round(zoom*100);resetZoom.textContent=Math.round(zoom*100)+'%';applyTransform();
+}
+function unfocusScene(){
+  if(!focusSnapshot)return;
+  ({zoom,panX,panY}=focusSnapshot);
+  focusedScene=null;focusSnapshot=null;lastFocusTransfer=null;syncFocusButton();
   zoomEl.value=Math.round(zoom*100);resetZoom.textContent=Math.round(zoom*100)+'%';applyTransform();
 }
 function pt(e){
@@ -562,11 +570,11 @@ viewer.onpointerdown=e=>{
   if(alignment){drag={type:'align',point:alignment,x:e.clientX,y:e.clientY,moved:false,pointerId:e.pointerId};return}
   const si=sceneAt(p),h=hit(p);
   if(showBoundaries){
-    const scene=yellowHit(p)>=0?yellowHit(p):si;
+    const scene=si;
     drag=scene>=0?{type:'scene',scene,pointerId:e.pointerId,moved:false,x:e.clientX,y:e.clientY,px:panX,py:panY}:{type:'pan',x:e.clientX,y:e.clientY,px:panX,py:panY};return;
   }
   if(h){drag={type:'edge',h};return}
-  if(si>=0&&si!==selected){select(si);drag={type:'pan',x:e.clientX,y:e.clientY,px:panX,py:panY};return}
+  if(si>=0&&si!==selected){const wasFocused=focusedScene!==null;select(si);if(wasFocused)lastFocusTransfer={scene:si,at:Date.now()};drag={type:'pan',x:e.clientX,y:e.clientY,px:panX,py:panY};return}
   drag={type:'pan',x:e.clientX,y:e.clientY,px:panX,py:panY};
 };
 viewer.onpointermove=e=>{
@@ -576,7 +584,6 @@ viewer.onpointermove=e=>{
   if(pointers.size===2&&pinch){
     const a=[...pointers.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
     if(!pinch.d)return;
-    focusedScene=null;syncFocusButton();
     zoom=Math.max(1,Math.min(6,pinch.z*d/pinch.d));
     const r=viewer.getBoundingClientRect(),cx=(a[0].x+a[1].x)/2-r.left,cy=(a[0].y+a[1].y)/2-r.top;
     panX=cx-(pinch.cx-pinch.px)*zoom/pinch.z;panY=cy-(pinch.cy-pinch.py)*zoom/pinch.z;
@@ -585,7 +592,7 @@ viewer.onpointermove=e=>{
   if(!drag)return;
   if(drag.type==='pan'||drag.type==='scene'){
     if(drag.type==='scene'&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8)drag.moved=true;
-    if(zoom>1){focusedScene=null;syncFocusButton();panX=drag.px+e.clientX-drag.x;panY=drag.py+e.clientY-drag.y;applyTransform()}
+    if(zoom>1){panX=drag.px+e.clientX-drag.x;panY=drag.py+e.clientY-drag.y;applyTransform()}
     return;
   }
   if(drag.type==='align'){if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8)drag.moved=true;return}
@@ -616,7 +623,7 @@ window.addEventListener('resize',()=>{if(img)resetView()});
 
 function setBusy(busy){
   exporting=busy;if(busy)cancelRequested=false;cancelExport.disabled=!busy;drag=null;pinch=null;pointers.clear();
-  [file,gridMode,gridColsInput,gridRowsInput,applyGrid,detectBtn,splitBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls,exportSize,aiScale,aiProfile,exportFormat,saveSelected,previewAIBtn,...grid.querySelectorAll('button')].forEach(x=>x.disabled=busy);
+  [file,gridMode,gridColsInput,gridRowsInput,applyGrid,detectBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls,exportSize,aiScale,aiProfile,exportFormat,saveSelected,previewAIBtn,...grid.querySelectorAll('button')].forEach(x=>x.disabled=busy);
   updateUI();
 }
 function cropCanvas(c){
@@ -750,9 +757,8 @@ function updateCard(index){
   thumbnail.getContext('2d').drawImage(img,c.x0,c.y0,width,height,0,0,thumbnail.width,thumbnail.height);
   card.querySelector('img').src=thumbnail.toDataURL('image/jpeg',.86);
 }
-function split(){
-  if(!img||exporting)return;
-  $('#gallery').hidden=false;$('#galleryTitle').textContent='Sve scene ('+crops.length+')';
+function renderGallery(){
+  if(!img)return;
   grid.innerHTML='';
   crops.forEach((c,i)=>{
     const card=document.createElement('div');
@@ -765,9 +771,7 @@ function split(){
     save.className='card-save';save.onclick=()=>saveScene(i);
     card.append(im,number,label,b,save);grid.append(card);updateCard(i);
   });
-  status.textContent='Prikazano '+crops.length+' scena. Dodirni sliku ili „Prikaži” za preciznu korekciju.';
 }
-splitBtn.onclick=split;
 function markCards(){grid.querySelectorAll('.card').forEach((x,i)=>x.classList.toggle('selected',i===selected))}
 
 function crc32(a){let c=0xffffffff;for(const b of a){c^=b;for(let j=0;j<8;j++)c=(c>>>1)^((c&1)?0xedb88320:0)}return(c^0xffffffff)>>>0}

@@ -119,12 +119,12 @@ console.log('edge priority, touch selection, independent drag, interrupted gestu
   fs.writeFileSync('/tmp/scene-splitter-verify.zip',Buffer.from(await archive.arrayBuffer()));
   const handlers={},deleted=[],stored=[];
   const cache={addAll:async assets=>assert(assets.includes('./index.html')&&assets.includes('./grid-detection.js')),put:async(key,response)=>stored.push(key)};
-  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io',href:'https://neske89.github.io/scene-splitter/sw.js'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11','unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
+  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io',href:'https://neske89.github.io/scene-splitter/sw.js'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11','scene-splitter-v12','unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
   vm.runInContext(fs.readFileSync(__dirname+'/sw.js','utf8'),swContext);
   let pending;
   handlers.install({waitUntil:p=>pending=p});await pending;
   handlers.activate({waitUntil:p=>pending=p});await pending;
-  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10']);
+  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11']);
   let response,background;
   handlers.fetch({request:{method:'GET',url:'https://neske89.github.io/scene-splitter/',mode:'navigate'},respondWith:p=>response=p,waitUntil:p=>background=p});
   assert((await response).ok);await background;assert.deepStrictEqual(stored,['./index.html']);
@@ -150,7 +150,7 @@ for(let i=0;i<16;i++){
   assert(bounds.left>=18-1e-8&&bounds.right<=382+1e-8);
   assert(bounds.top>=18-1e-8&&bounds.bottom<=162+1e-8);
 }
-vm.runInContext('selected=0;showBoundaries=false',context);
+vm.runInContext('selected=0;showBoundaries=false;focusedScene=null;focusSnapshot=null;zoom=1.7;panX=23;panY=-11',context);
 let count=strokeCalls.length;
 vm.runInContext('draw()',context);
 assert.strictEqual(strokeCalls.length-count,1);
@@ -166,20 +166,33 @@ assert.strictEqual(vm.runInContext('focusedScene',context),15);
 assert.strictEqual(elements.get('#focusLabel').textContent,'Ukloni fokus');
 viewer.ondblclick({clientX:310,clientY:310});
 assert.strictEqual(vm.runInContext('focusedScene',context),null);
-assert.strictEqual(vm.runInContext('zoom',context),1);
-assert.strictEqual(vm.runInContext('panX',context),0);
-assert.strictEqual(vm.runInContext('panY',context),0);
+assert.strictEqual(vm.runInContext('zoom',context),1.7);
+assert.strictEqual(vm.runInContext('panX',context),23);
+assert.strictEqual(vm.runInContext('panY',context),-11);
 assert.strictEqual(elements.get('#focusLabel').textContent,'Fokusiraj');
 elements.get('#focus').onclick();
 assert.strictEqual(vm.runInContext('focusedScene',context),15);
 elements.get('#focus').onclick();
 assert.strictEqual(vm.runInContext('focusedScene',context),null);
+assert.strictEqual(vm.runInContext('zoom',context),1.7);
 viewer.ondblclick({clientX:50,clientY:50});
 assert.strictEqual(vm.runInContext('selected',context),0);
 assert.strictEqual(vm.runInContext('focusedScene',context),0);
 viewer.ondblclick({clientX:150,clientY:50});
 assert.strictEqual(vm.runInContext('selected',context),1);
 assert.strictEqual(vm.runInContext('focusedScene',context),1);
+viewer.onpointerdown(event(81,50,50));
+assert.strictEqual(vm.runInContext('selected',context),0);
+assert.strictEqual(vm.runInContext('focusedScene',context),0);
+viewer.onpointerup(event(81,50,50));
+viewer.ondblclick({clientX:50,clientY:50});
+assert.strictEqual(vm.runInContext('focusedScene',context),0);
+elements.get('#focus').onclick();
+assert.strictEqual(vm.runInContext('zoom',context),1.7);
+assert.strictEqual(vm.runInContext('panX',context),23);
+assert.strictEqual(vm.runInContext('panY',context),-11);
+assert(html.includes('<details id="gallery" class="gallery" open>'));
+assert(!html.includes('id="split"'));
 // Every edge copies the matching coordinate from the reference, independently.
 for(const edge of ['x0','x1','y0','y1']){
   vm.runInContext('selected=0;crops[0]={x0:10,y0:10,x1:190,y1:190};crops[1]={x0:20,y0:30,x1:180,y1:170}',context);
@@ -286,12 +299,15 @@ assert.strictEqual(vm.runInContext('crops[0].y0',context),12);
 viewer.onpointerdown(e);viewer.onpointerdown(event(52,350,350));
 viewer.onpointerup(event(52,350,350));viewer.onpointerup(e);
 assert.strictEqual(vm.runInContext('crops[0].y0',context),12);
-// Every visible border gets its scene number; the selected scene draws last.
+// Numbered resize handles appear only in single-scene editing.
+vm.runInContext('showBoundaries=false',context);
+let before=textCalls.length;vm.runInContext('draw()',context);
+let labels=textCalls.slice(before).map(call=>call[0]).filter(text=>/^\d+$/.test(text));
+assert.strictEqual(labels.length,8);
 vm.runInContext('showBoundaries=true',context);
-const before=textCalls.length;vm.runInContext('draw()',context);
-const labels=textCalls.slice(before).map(call=>call[0]).filter(text=>/^\d+$/.test(text));
-assert.strictEqual(labels.length,128);assert.strictEqual(labels.at(-1),'1');
-for(let i=1;i<=16;i++)assert.strictEqual(labels.filter(label=>label===String(i)).length,8);
+before=textCalls.length;vm.runInContext('draw()',context);
+labels=textCalls.slice(before).map(call=>call[0]).filter(text=>/^\d+$/.test(text));
+assert.strictEqual(labels.length,0);
 // Hidden boundaries expose no arrow targets, and exporting blocks clicks.
 vm.runInContext('showBoundaries=false;setBusy(true)',context);
 viewer.onpointerdown(e);
@@ -344,7 +360,7 @@ assert.strictEqual(vm.runInContext('crops[4].y0',context),215);
 assert.strictEqual(vm.runInContext('selected',context),4);
 assert.strictEqual(vm.runInContext('showBoundaries',context),true);
 assert.strictEqual(elements.get('#applyDimensions').disabled,true);
-// Clicking the body or a numbered corner exits overview; cancellation and pinch do not.
+// Clicking the body exits overview; cancellation, pinch and hidden handles do not.
 viewer.onpointerdown(event(72,250,250));viewer.onpointercancel(event(72,250,250));
 assert.strictEqual(vm.runInContext('showBoundaries',context),true);
 viewer.onpointerdown(event(73,250,250));viewer.onpointerdown(event(74,280,280));viewer.onpointerup(event(74,280,280));viewer.onpointerup(event(73,250,250));
@@ -356,6 +372,8 @@ assert.strictEqual(elements.get('#applyDimensions').disabled,false);
 assert.strictEqual(elements.get('#boundaries').textContent,'Prikaži sve granice');
 vm.runInContext('setBoundaries(true)',context);
 viewer.onpointerdown(event(76,-3,-3));viewer.onpointerup(event(76,-3,-3));
+assert.strictEqual(vm.runInContext('showBoundaries',context),true);
+viewer.onpointerdown(event(77,50,50));viewer.onpointerup(event(77,50,50));
 assert.strictEqual(vm.runInContext('showBoundaries',context),false);
 assert.strictEqual(vm.runInContext('selected',context),0);
 console.log('all numbered handles, text-only opacity, separated checkerboard arrows, pale-yellow overview, resize lock and click-to-exit: OK');
