@@ -35,13 +35,14 @@ function canvas() {
   return element;
 }
 const document = {
+  body: {style: {overflow: ''}},
   querySelector(selector) {
     if (!elements.has(selector)) elements.set(selector, selector === '#preview' ? canvas() : {style: {setProperty(name,value){this[name]=value}}, disabled: true, children: [], querySelectorAll:()=>[], getBoundingClientRect:()=>({left:0,top:0,width:400,height:400}),setPointerCapture:()=>{},setAttribute:()=>{},removeAttribute:()=>{}});
     return elements.get(selector);
   },
   createElement(tag) { return tag === 'canvas' ? canvas() : {style: {}}; }
 };
-const context = vm.createContext({document, navigator: {}, window: {addEventListener:()=>{}}, TextEncoder, Uint8Array, Blob, Map, Math, Float32Array});
+const context = vm.createContext({document, navigator: {}, window: {addEventListener:()=>{},innerWidth:1200,innerHeight:800}, TextEncoder, Uint8Array, Blob, Map, Math, Float32Array});
 vm.runInContext(script, context);
 vm.runInContext("gridCols=gridRows=4",context);
 vm.runInContext('cv.width=800;cv.height=800;img={naturalWidth:800,naturalHeight:800}; crops=[{x0:20,y0:30,x1:120,y1:150}, ...Array.from({length:15},()=>({x0:0,y0:0,x1:100,y1:100}))]', context);
@@ -119,12 +120,12 @@ console.log('edge priority, touch selection, independent drag, interrupted gestu
   fs.writeFileSync('/tmp/scene-splitter-verify.zip',Buffer.from(await archive.arrayBuffer()));
   const handlers={},deleted=[],stored=[];
   const cache={addAll:async assets=>assert(assets.includes('./index.html')&&assets.includes('./grid-detection.js')),put:async(key,response)=>stored.push(key)};
-  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io',href:'https://neske89.github.io/scene-splitter/sw.js'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11','scene-splitter-v12','unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
+  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io',href:'https://neske89.github.io/scene-splitter/sw.js'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11','scene-splitter-v12','scene-splitter-v13','unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
   vm.runInContext(fs.readFileSync(__dirname+'/sw.js','utf8'),swContext);
   let pending;
   handlers.install({waitUntil:p=>pending=p});await pending;
   handlers.activate({waitUntil:p=>pending=p});await pending;
-  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11']);
+  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11','scene-splitter-v12']);
   let response,background;
   handlers.fetch({request:{method:'GET',url:'https://neske89.github.io/scene-splitter/',mode:'navigate'},respondWith:p=>response=p,waitUntil:p=>background=p});
   assert((await response).ok);await background;assert.deepStrictEqual(stored,['./index.html']);
@@ -387,6 +388,12 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   context.SceneAI={settings:(profile,scale)=>({family:'slim',scale}),abort:()=>{},upscale:async(canvas,options,progress)=>{
     calls.push([canvas.width,canvas.height,options.scale]);
     progress({stage:'processing',value:1});
+    if(vm.runInContext('exporting',context)){
+      assert.strictEqual(elements.get('#loadingOverlay').hidden,false);
+      assert.strictEqual(elements.get('#appShell').inert,true);
+      assert.strictEqual(document.body.style.overflow,'hidden');
+      assert.strictEqual(elements.get('#loaderProgress').value,100);
+    }
     return {width:canvas.width*options.scale,height:canvas.height*options.scale,pixels:new ArrayBuffer(canvas.width*canvas.height*options.scale**2*4)};
   }};
   context.captureDownload=(blob,name)=>downloads.push({blob,name});
@@ -401,6 +408,8 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   assert.strictEqual(elements.get('#aiScale').value,'4');assert.strictEqual(elements.get('#aiEnabledLabel').textContent,'Uključeno');
   elements.get('#aiScale').value='2';elements.get('#aiProfile').value='auto';elements.get('#exportFormat').value='png';elements.get('#exportSize').value='original';
   await vm.runInContext('saveScene(0)',context);
+  assert.strictEqual(elements.get('#loadingOverlay').hidden,true);
+  assert.strictEqual(elements.get('#appShell').inert,false);
   assert.strictEqual(downloads.at(-1).name,'scene-01.png');
   assert.deepStrictEqual(blobCalls.at(-1),{width:40,height:30,mime:'image/png',quality:.98});
   assert.strictEqual(elements.get('#cancelExport').disabled,true);
@@ -416,6 +425,11 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   // AI preview and source preview use separate full-resolution images.
   await elements.get('#previewAI').onclick();
   assert.strictEqual(elements.get('#aiComparison').hidden,false);
+  assert.strictEqual(elements.get('#compareFrame').style.width,'40px');
+  assert.strictEqual(elements.get('#compareFrame').style.height,'30px');
+  vm.runInContext('comparisonSize={width:2000,height:1000};sizeComparison()',context);
+  assert.strictEqual(elements.get('#compareFrame').style.width,'1150px');
+  assert.strictEqual(elements.get('#compareFrame').style.height,'575px');
   assert(elements.get('#aiResultInfo').textContent.includes('20 × 15 px → AI 40 × 30 px'));
   const enhancedURL=elements.get('#comparisonImage').src;
   elements.get('#showOriginal').onclick();assert.notStrictEqual(elements.get('#comparisonImage').src,enhancedURL);
@@ -431,9 +445,10 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   assert.strictEqual(calls.length,withoutAI);assert.strictEqual(blobCalls.at(-1).width,20);
   // Cancellation between scenes must suppress downloading a partial archive.
   elements.get('#aiScale').value='2';const downloadCount=downloads.length;
-  context.SceneAI.upscale=async()=>{elements.get('#cancelExport').onclick();throw Object.assign(Error('cancelled'),{name:'AbortError'})};
+  context.SceneAI.upscale=async()=>{elements.get('#loaderCancel').onclick();assert.strictEqual(elements.get('#loaderCancel').disabled,true);throw Object.assign(Error('cancelled'),{name:'AbortError'})};
   await elements.get('#zip').onclick();
   assert.strictEqual(downloads.length,downloadCount);
+  assert.strictEqual(elements.get('#loadingOverlay').hidden,true);
   assert.strictEqual(elements.get('#zip').disabled,false);
   assert.strictEqual(elements.get('#file').disabled,false);
   assert.strictEqual(elements.get('#status').textContent,'Obrada je prekinuta.');

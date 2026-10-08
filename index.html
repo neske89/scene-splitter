@@ -117,11 +117,11 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 .card.selected .card-label{color:#0064ff;font-weight:600}
 .card button{width:100%;font-size:11px;min-height:32px;padding:7px;border-color:transparent;background:#edf1f7;gap:5px}
 .card .card-save{margin-top:4px;background:transparent;color:#65758f;min-height:24px;padding:3px}
-.comparison{position:fixed;z-index:20;top:50%;left:50%;transform:translate(-50%,-50%);width:min(368px,calc(100vw - 28px));max-height:calc(100dvh - 28px);overflow:auto;background:#fff;border:1px solid #dfe5ef;border-radius:16px;padding:20px;box-shadow:0 10px 30px #253f6a26,0 2px 5px #253f6a12}
+.comparison{position:fixed;z-index:50;top:50%;left:50%;transform:translate(-50%,-50%);min-width:min(320px,calc(100vw - 16px));max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px);overflow:auto;background:#fff;border:1px solid #dfe5ef;border-radius:16px;padding:16px;box-shadow:0 10px 30px #253f6a26,0 2px 5px #253f6a12}
 .comparison-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:15px}
 .comparison-heading button{border:0;background:transparent;padding:4px;min-height:26px;width:26px}
-.compare-frame{position:relative;overflow:hidden;border-radius:9px;background:#f0f3f7;--split:50%}
-.compare-frame img{display:block;width:100%;height:auto;max-height:55dvh;object-fit:contain}
+.compare-frame{position:relative;overflow:hidden;border-radius:9px;background:#f0f3f7;margin-inline:auto;--split:50%}
+.compare-frame img{display:block;width:100%;height:100%;object-fit:contain}
 #comparisonImage{position:absolute;inset:0;height:100%;clip-path:inset(0 0 0 var(--split))}
 .compare-tags{position:absolute;top:7px;left:7px;right:7px;display:flex;justify-content:space-between;pointer-events:none}
 .compare-tags span{font-size:10px;color:#fff;background:#1c293b99;border-radius:6px;padding:5px 7px}
@@ -133,6 +133,13 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 .compare-modes button{font-size:11px;min-height:25px;padding:4px 9px}
 #aiResultInfo{text-align:center;font-size:11px;margin:12px 0;line-height:1.5}
 #downloadCompared{width:100%;margin-top:4px}
+.loading-overlay{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:16px;background:#0e1d33bd;overscroll-behavior:contain}
+.loading-card{width:min(420px,100%);border-radius:18px;background:#fff;padding:24px;box-shadow:0 18px 55px #07132355;text-align:center}
+.loading-card h2{justify-content:center;font-size:20px;margin-bottom:12px}
+.loading-card p{font-size:14px;color:#536988;line-height:1.5;min-height:22px;margin:0 0 14px}
+.loading-card progress{display:block;width:100%;height:12px;accent-color:#0879ff;margin-bottom:8px}
+.loading-card output{display:block;min-height:20px;color:#43516b;font-size:13px;font-weight:600}
+.loading-card button{margin-top:16px;min-width:130px}
 .privacy-panel{position:fixed;z-index:30;right:34px;top:80px;width:min(430px,calc(100vw - 32px));background:#fff;border:1px solid #dfe5ef;border-radius:15px;padding:20px;box-shadow:0 10px 30px #253f6a26}
 .privacy-panel p{color:#61718c;font-size:13px;line-height:1.6}
 @media(min-width:1000px){
@@ -140,15 +147,15 @@ canvas{display:block;width:100%;height:auto;background:#222426}
  .sidebar{grid-column:2;grid-row:1;min-height:780px}
  .canvas-panel{grid-column:1;grid-row:1}
  .viewer{min-height:0}
- .comparison{left:calc(50% + 20px)}
 }
 @media(max-width:1100px){body{padding:20px}.upload-zone{gap:10px;padding:18px 12px}.upload-icon{display:none}.ai-options{gap:12px}.inline-field{gap:7px}}
-@media(max-width:999px){.canvas-panel{grid-row:1}.sidebar{grid-row:2}.viewer{min-height:250px}.app-header{gap:14px}.app-header .soft{font-size:12px}.app-header .soft span{max-width:100px}.sidebar{min-height:0}.comparison{left:50%}.privacy-panel{right:16px}}
+@media(max-width:999px){.canvas-panel{grid-row:1}.sidebar{grid-row:2}.viewer{min-height:250px}.app-header{gap:14px}.app-header .soft{font-size:12px}.app-header .soft span{max-width:100px}.sidebar{min-height:0}.privacy-panel{right:16px}}
 @media(max-width:550px){body{padding:16px 12px}h1{font-size:26px}.subtitle{font-size:13px}.app-header{margin-bottom:18px}.app-header .soft{min-width:38px;padding:9px}.app-header .soft span{display:none}.upload-zone{padding:16px 12px}.upload-copy strong{font-size:13px}.upload-copy p{font-size:11px}.upload-zone button{font-size:12px;padding:10px}.scene-nav{grid-template-columns:1fr 1.1fr 1fr;gap:6px}.scene-nav button{font-size:11px;gap:5px}.geometry{gap:8px}.zoomrow{gap:8px;grid-template-columns:auto 35px minmax(0,1fr) 35px 62px}.ai-options{gap:10px;grid-template-columns:1fr 1.2fr}.inline-field{flex-direction:column;align-items:stretch;gap:6px}.export-options{grid-template-columns:minmax(0,1fr) 85px}.gallery{padding:12px}.gallery-title{font-size:16px}.grid{grid-auto-columns:92px}.card img{height:92px}.grid-controls{gap:8px}.grid-controls button{font-size:12px;padding:9px}.comparison{padding:16px}}
 </style>
 </head>
 <body>
 <svg class="icon-sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs><symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.1"/></symbol><symbol id="icon-upload" viewBox="0 0 24 24"><path d="M7 18H5a4 4 0 0 1-.5-8A7 7 0 0 1 18 8a5 5 0 0 1 1 10h-2M12 21V10m-4 4 4-4 4 4"/></symbol><symbol id="icon-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="icon-grid" viewBox="0 0 24 24"><path d="M3 3h6v6H3zm12 0h6v6h-6zM3 15h6v6H3zm12 0h6v6h-6z"/></symbol><symbol id="icon-focus" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3"/><path d="M12 1v4m0 14v4M1 12h4m14 0h4"/></symbol><symbol id="icon-arrow-left" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></symbol><symbol id="icon-arrow-right" viewBox="0 0 24 24"><path d="m10 6 6 6-6 6"/></symbol><symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M20 9a8 8 0 1 0-1 9M20 3v6h-6"/></symbol><symbol id="icon-sparkles" viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5ZM4 2v4M2 4h4m14 14v4m-2-2h4"/></symbol><symbol id="icon-compare" viewBox="0 0 24 24"><path d="M9 4H4v16h5m6-16h5v16h-5M12 2v20"/></symbol><symbol id="icon-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></symbol><symbol id="icon-export" viewBox="0 0 24 24"><path d="M12 15V2m-5 5 5-5 5 5M8 8H4v13h16V8h-4"/></symbol><symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol><symbol id="icon-up" viewBox="0 0 24 24"><path d="m6 14 6-6 6 6"/></symbol></defs></svg>
+<div id="appShell">
 <header class="app-header">
  <div><h1>Scene Splitter</h1><p class="subtitle">Automatski podeli sliku na scene, prilagodi granice i preuzmi pojedinačne slike visokog kvaliteta.</p></div>
  <button id="privacyToggle" class="soft" aria-expanded="false" aria-controls="privacyPanel"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg><span>Kako radi i privatnost</span></button>
@@ -229,6 +236,10 @@ canvas{display:block;width:100%;height:auto;background:#222426}
  </section>
 </div>
 </div>
+</div>
+<div id="loadingOverlay" class="loading-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="loaderTitle" aria-describedby="loaderMessage">
+ <div class="loading-card"><h2 id="loaderTitle">Obrada slike</h2><p id="loaderMessage" role="status" aria-live="polite">Pripremam obradu…</p><progress id="loaderProgress" max="100"></progress><output id="loaderPercent" for="loaderProgress"></output><button id="loaderCancel" class="secondary">Prekini</button></div>
+</div>
 <script src="./ai.js"></script>
 <script src="./grid-detection.js"></script>
 <script>
@@ -242,7 +253,9 @@ const cropWidth=$('#cropWidth'),cropHeight=$('#cropHeight'),dimensionsBtn=$('#ap
 const aspectRatio=$('#aspectRatio'),aspectWidth=$('#aspectWidth'),aspectHeight=$('#aspectHeight'),aspectBtn=$('#applyAspect');
 const geometryControls=[cropWidth,cropHeight,dimensionsBtn,aspectRatio,aspectWidth,aspectHeight,aspectBtn];
 const aiScale=$('#aiScale'),aiProfile=$('#aiProfile'),exportFormat=$('#exportFormat'),previewAIBtn=$('#previewAI'),cancelExport=$('#cancelExport'),saveSelected=$('#saveSelected');
+const loadingOverlay=$('#loadingOverlay'),loaderProgress=$('#loaderProgress'),loaderCancel=$('#loaderCancel');
 let cancelRequested=false,comparisonURLs=[],lastAIScale='2';
+let busyReturnFocus=null,comparisonSize=null;
 const aspectLocks=new Map();
 const gridMode=$('#gridMode'),gridColsInput=$('#gridCols'),gridRowsInput=$('#gridRows'),applyGrid=$('#applyGrid');
 let gridCols=1,gridRows=1;
@@ -619,12 +632,23 @@ viewer.onpointerup=e=>{
   if(scene>=0&&!exporting)select(scene);
   if(action&&!exporting){select(action.scene,false,false);alignBoundary(action.edge,action.reference)}
 };viewer.onpointercancel=end;viewer.onlostpointercapture=end;
-window.addEventListener('resize',()=>{if(img)resetView()});
+window.addEventListener('resize',()=>{if(img)resetView();if(comparisonSize)sizeComparison()});
 
-function setBusy(busy){
-  exporting=busy;if(busy)cancelRequested=false;cancelExport.disabled=!busy;drag=null;pinch=null;pointers.clear();
+function setProgress(message,percent=null){
+  $('#loaderMessage').textContent=message;
+  if(Number.isFinite(percent)){
+    const value=Math.max(0,Math.min(100,Math.round(percent)));
+    loaderProgress.value=value;$('#loaderPercent').textContent=value+'%';
+  }else{loaderProgress.removeAttribute('value');$('#loaderPercent').textContent=''}
+}
+function setBusy(busy,title='Obrada slike'){
+  if(busy){busyReturnFocus=document.activeElement;cancelRequested=false;$('#loaderTitle').textContent=title;setProgress('Pripremam obradu…');}
+  exporting=busy;cancelExport.disabled=!busy;drag=null;pinch=null;pointers.clear();
   [file,gridMode,gridColsInput,gridRowsInput,applyGrid,detectBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls,exportSize,aiScale,aiProfile,exportFormat,saveSelected,previewAIBtn,...grid.querySelectorAll('button')].forEach(x=>x.disabled=busy);
   updateUI();
+  loadingOverlay.hidden=!busy;$('#appShell').inert=busy;document.body.style.overflow=busy?'hidden':'';
+  loaderCancel.disabled=!busy||cancelRequested;
+  if(busy)loaderCancel.focus?.();else busyReturnFocus?.focus?.();
 }
 function cropCanvas(c){
   const width=Math.max(1,Math.round(c.x1-c.x0)),height=Math.max(1,Math.round(c.y1-c.y0));
@@ -662,7 +686,8 @@ function imageBlob(canvas,format=exportFormat.value){
   });
 }
 function ensureNotCancelled(){if(cancelRequested)throw Object.assign(Error('Obrada je prekinuta.'),{name:'AbortError'})}
-cancelExport.onclick=()=>{cancelRequested=true;cancelExport.disabled=true;$('#cancelAI').disabled=true;SceneAI.abort();status.textContent='Prekidam obradu…'};
+cancelExport.onclick=()=>{if(!exporting||cancelRequested)return;cancelRequested=true;cancelExport.disabled=true;loaderCancel.disabled=true;$('#cancelAI').disabled=true;SceneAI.abort();setProgress('Prekidam obradu…')};
+loaderCancel.onclick=()=>cancelExport.onclick();
 function sceneFilename(index){return 'scene-'+String(index+1).padStart(2,'0')+(exportFormat.value==='jpeg'?'.jpg':'.png')}
 async function enhancedCrop(c,index,total=1){
   ensureNotCancelled();
@@ -672,7 +697,8 @@ async function enhancedCrop(c,index,total=1){
     const options=SceneAI.settings(aiProfile.value,scale);
     const result=await SceneAI.upscale(original,options,progress=>{
       const label=total>1?`Scena ${index+1} / ${total}`:`Scena ${index+1}`;
-      status.textContent=progress.stage==='loading'?`${label}: učitavam lokalni AI model…`:`${label}: AI obrada ${Math.round(progress.value*100)}%…`;
+      const part=progress.stage==='loading'?0:Math.max(0,Math.min(1,progress.value));
+      setProgress(progress.stage==='loading'?`${label}: učitavam lokalni AI model…`:`${label}: AI obrada ${Math.round(part*100)}%…`,total>1?(index+part)/total*100:progress.stage==='loading'?null:part*100);
     });
     ensureNotCancelled();
     const canvas=document.createElement('canvas');canvas.width=result.width;canvas.height=result.height;
@@ -683,9 +709,10 @@ async function enhancedCrop(c,index,total=1){
 async function prepareExport(c,index,total=1){return fitExport(await enhancedCrop(c,index,total))}
 async function saveScene(index){
   try{
-    setBusy(true);status.textContent='Pripremam scenu '+(index+1)+'…';
+    setBusy(true,'Izvoz scene');setProgress('Pripremam scenu '+(index+1)+'…');
     await new Promise(requestAnimationFrame);ensureNotCancelled();
     const blob=await imageBlob(await prepareExport(crops[index],index));ensureNotCancelled();
+    setProgress('Scena '+(index+1)+' je spremna.',100);
     download(blob,sceneFilename(index));status.textContent='Scena '+(index+1)+' je spremna.';
   }catch(error){status.textContent=error.name==='AbortError'?'Obrada je prekinuta.':'Greška: '+error.message}
   finally{setBusy(false)}
@@ -699,6 +726,7 @@ $('#cancelAI').onclick=()=>{cancelExport.onclick();$('#cancelAI').disabled=true}
 function clearComparison(){
   comparisonURLs.forEach(url=>URL.revokeObjectURL(url));comparisonURLs=[];
   const wasOpen=!$('#aiComparison').hidden;$('#aiComparison').hidden=true;
+  comparisonSize=null;
   if(wasOpen)$('#showScene').focus?.();
   $('#comparisonImage').removeAttribute('src');$('#comparisonOriginal').removeAttribute('src');
 }
@@ -709,7 +737,19 @@ $('#compareSlider').oninput=()=>{
   if(comparisonURLs[1]){$('#comparisonImage').src=comparisonURLs[1];$('#comparisonImage').alt='AI rezultat izabrane scene'}
   setComparePosition(Number($('#compareSlider').value));
 };
-function openComparison(index,info,enhanced=true){
+function sizeComparison(){
+  const panel=$('#aiComparison'),frame=$('#compareFrame'),{width,height}=comparisonSize;
+  const viewportWidth=window.innerWidth||800,viewportHeight=window.innerHeight||800;
+  const maxWidth=Math.max(1,viewportWidth-50);
+  panel.style.width=Math.min(width,maxWidth)+34+'px';
+  frame.style.width='1px';frame.style.height='1px';
+  const chrome=Math.max(0,panel.getBoundingClientRect().height-frame.getBoundingClientRect().height);
+  const scale=Math.min(1,maxWidth/width,Math.max(1,viewportHeight-16-chrome)/height);
+  frame.style.width=Math.max(1,Math.floor(width*scale))+'px';
+  frame.style.height=Math.max(1,Math.floor(height*scale))+'px';
+  panel.style.width=Math.max(1,Math.floor(width*scale))+34+'px';
+}
+function openComparison(index,info,enhanced=true,width=1,height=1){
   const image=$('#comparisonImage');image.src=comparisonURLs[enhanced?1:0];
   $('#comparisonOriginal').src=comparisonURLs[0];
   $('#comparisonTitle').textContent='Scena '+(index+1);
@@ -719,30 +759,34 @@ function openComparison(index,info,enhanced=true){
   $('#showOriginal').onclick=()=>{image.src=comparisonURLs[0];image.alt='Original scene '+(index+1);setComparePosition(100)};
   $('#showEnhanced').onclick=()=>{image.src=comparisonURLs[1];image.alt='AI rezultat scene '+(index+1);setComparePosition(0)};
   $('#downloadCompared').onclick=()=>saveScene(index);
-  $('#aiResultInfo').textContent=info;$('#aiComparison').hidden=false;$('#aiComparison').focus?.();
+  $('#aiResultInfo').textContent=info;comparisonSize={width,height};$('#aiComparison').hidden=false;sizeComparison();$('#aiComparison').focus?.();
 }
 $('#showScene').onclick=async()=>{
   const index=selected,c={...crops[index]};
+  let ready=false;
   try{
-    setBusy(true);clearComparison();
+    setBusy(true,'Prikaz scene');clearComparison();setProgress('Pripremam sliku scene '+(index+1)+'…');
     comparisonURLs.push(URL.createObjectURL(await imageBlob(cropCanvas(c),'png')));ensureNotCancelled();
-    openComparison(index,(c.x1-c.x0)+' × '+(c.y1-c.y0)+' px · Original',false);
+    ready=true;
   }catch(error){clearComparison();status.textContent=error.name==='AbortError'?'Obrada je prekinuta.':'Greška: '+error.message}
   finally{setBusy(false)}
+  if(ready)openComparison(index,(c.x1-c.x0)+' × '+(c.y1-c.y0)+' px · Original',false,c.x1-c.x0,c.y1-c.y0);
 };
 
 $('#closeComparison').onclick=clearComparison;
 previewAIBtn.onclick=async()=>{
-  let original,enhanced;
+  let original,enhanced,ready=null;
   try{
-    setBusy(true);clearComparison();const index=selected,c={...crops[index]};
+    setBusy(true,'Poređenje AI rezultata');clearComparison();const index=selected,c={...crops[index]};
     original=cropCanvas(c);enhanced=await enhancedCrop(c,index);ensureNotCancelled();
     const info=`${original.width} × ${original.height} px → AI ${enhanced.width} × ${enhanced.height} px (${aiScale.value}×)`;
+    ready={index,info,width:enhanced.width,height:enhanced.height};setProgress('Pripremam poređenje…',100);
     comparisonURLs.push(URL.createObjectURL(await imageBlob(original,'png')));original=null;ensureNotCancelled();
     comparisonURLs.push(URL.createObjectURL(await imageBlob(enhanced,'png')));enhanced=null;ensureNotCancelled();
-    openComparison(index,info);status.textContent='Poređenje scene '+(index+1)+' je spremno.';
+    status.textContent='Poređenje scene '+(index+1)+' je spremno.';
   }catch(error){clearComparison();status.textContent=error.name==='AbortError'?'Obrada je prekinuta.':'Greška: '+error.message}
   finally{if(original)original.width=original.height=1;if(enhanced)enhanced.width=enhanced.height=1;setBusy(false)}
+  if(ready&&comparisonURLs.length===2)openComparison(ready.index,ready.info,true,ready.width,ready.height);
 };
 function download(blob,name){
   const url=URL.createObjectURL(blob),link=document.createElement('a');
@@ -792,18 +836,19 @@ function zipBlob(files){
 async function makeFiles(){
   const fs=[];
   for(let i=0;i<crops.length;i++){
-    status.textContent='Pripremam scenu '+(i+1)+' / '+crops.length+'…';
+    setProgress('Pripremam scenu '+(i+1)+' / '+crops.length+'…',i/crops.length*100);
     await new Promise(requestAnimationFrame);
     ensureNotCancelled();
     const blob=await imageBlob(await prepareExport(crops[i],i,crops.length));ensureNotCancelled();
     fs.push({name:sceneFilename(i),data:new Uint8Array(await blob.arrayBuffer())});
+    setProgress('Završeno '+(i+1)+' / '+crops.length+' scena.',(i+1)/crops.length*100);
   }
   return fs;
 }
 zipBtn.onclick=async()=>{
   try{
-    setBusy(true);zipBtn.textContent='Pravim ZIP…';status.textContent='Pripremam '+crops.length+' individualnih cropova…';
-    const files=await makeFiles();ensureNotCancelled();download(zipBlob(files),crops.length+'-scenes.zip');
+    setBusy(true,'Izvoz ZIP arhive');zipBtn.textContent='Pravim ZIP…';setProgress('Pripremam '+crops.length+' scena…',0);
+    const files=await makeFiles();ensureNotCancelled();setProgress('Pakujem ZIP arhivu…',100);download(zipBlob(files),crops.length+'-scenes.zip');
     status.textContent='ZIP sa '+crops.length+' scena je napravljen.';
   }catch(e){status.textContent=e.name==='AbortError'?'Obrada je prekinuta.':'Greška: '+e.message}
   finally{setBusy(false)}
