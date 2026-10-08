@@ -3,10 +3,12 @@ const fs = require('fs');
 const vm = require('vm');
 
 const html = fs.readFileSync(__dirname + '/index.html', 'utf8');
+assert.strictEqual((html.match(/id="exportSize"/g)||[]).length,1);
 const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
 const elements = new Map();
 const drawCalls = [];
 const strokeCalls = [];
+const fillRects = [];
 const textCalls = [];
 const textStyles = [],fillStyles = [],strokeStyles = [];
 const blobCalls = [];
@@ -19,7 +21,7 @@ function canvas() {
     getContext: () => ({
       globalAlpha: 1,
       drawImage: (...args) => drawCalls.push(args),
-      fillRect: () => {},
+      fillRect(...args){fillRects.push({args,style:this.fillStyle})},
       strokeRect(...args){strokeCalls.push(args);strokeStyles.push(this.strokeStyle)},
       translate: () => {},
       putImageData: () => {},
@@ -57,6 +59,13 @@ for (const size of [2048, 3072, 4096]) {
 }
 vm.runInContext('crops[0].x0=25', context);
 assert.strictEqual(vm.runInContext('crops[1].x0', context), 0);
+elements.get('#overlayScene').onclick();
+assert.strictEqual(elements.get('#overlayLabel').textContent,'Ukloni sloj');
+assert.deepStrictEqual(fillRects.at(-1),{args:[25,30,95,120],style:'rgba(0,100,255,.25)'});
+vm.runInContext('exportCanvas(crops[0])',context);
+assert.strictEqual(fillRects.at(-1).style,'#fff');
+elements.get('#overlayScene').onclick();
+assert.strictEqual(elements.get('#overlayLabel').textContent,'Dodaj sloj');
 assert.strictEqual(vm.runInContext('sceneAt({x:30,y:40})', context), 0);
 const archive = vm.runInContext("zipBlob([{name:'scene-01.jpg',data:new Uint8Array([1,2,3])}])", context);
 archive.arrayBuffer().then(buffer => {
@@ -121,12 +130,12 @@ console.log('edge priority, touch selection, independent drag, interrupted gestu
   fs.writeFileSync('/tmp/scene-splitter-verify.zip',Buffer.from(await archive.arrayBuffer()));
   const handlers={},deleted=[],stored=[];
   const cache={addAll:async assets=>assert(assets.includes('./index.html')&&assets.includes('./grid-detection.js')),put:async(key,response)=>stored.push(key)};
-  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io',href:'https://neske89.github.io/scene-splitter/sw.js'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11','scene-splitter-v12','scene-splitter-v13','scene-splitter-v14','scene-splitter-v15','scene-splitter-v16','unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
+  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io',href:'https://neske89.github.io/scene-splitter/sw.js'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11','scene-splitter-v12','scene-splitter-v13','scene-splitter-v14','scene-splitter-v15','scene-splitter-v16','scene-splitter-v17','unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
   vm.runInContext(fs.readFileSync(__dirname+'/sw.js','utf8'),swContext);
   let pending;
   handlers.install({waitUntil:p=>pending=p});await pending;
   handlers.activate({waitUntil:p=>pending=p});await pending;
-  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11','scene-splitter-v12','scene-splitter-v13','scene-splitter-v14','scene-splitter-v15']);
+  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11','scene-splitter-v12','scene-splitter-v13','scene-splitter-v14','scene-splitter-v15','scene-splitter-v16']);
   let response,background;
   handlers.fetch({request:{method:'GET',url:'https://neske89.github.io/scene-splitter/',mode:'navigate'},respondWith:p=>response=p,waitUntil:p=>background=p});
   assert((await response).ok);await background;assert.deepStrictEqual(stored,['./index.html']);
@@ -382,6 +391,7 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
 
 (async()=>{
   const calls=[],downloads=[],revoked=[];
+  const opened=[];context.window.open=(url,target,features)=>opened.push({url,target,features});
   context.requestAnimationFrame=callback=>setTimeout(callback,0);
   context.setTimeout=setTimeout;
   context.ImageData=class {constructor(data,width,height){this.data=data;this.width=width;this.height=height}};
@@ -399,15 +409,14 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   }};
   context.captureDownload=(blob,name)=>downloads.push({blob,name});
   vm.runInContext('download=captureDownload;setBusy(false);showBoundaries=false;cancelRequested=false;img={naturalWidth:800,naturalHeight:800};crops=Array.from({length:16},()=>({x0:10,y0:20,x1:30,y1:35}))',context);
-  // Upload size cap and the AI toggle must preserve the selected scale.
+  // Upload size cap and the AI toggle preserve the active processing choice.
   vm.runInContext('loadFile({size:51*1024*1024})',context);
   assert(elements.get('#status').textContent.includes('50 MB'));
-  elements.get('#aiScale').value='4';elements.get('#aiScale').onchange();
   elements.get('#aiEnabled').checked=false;elements.get('#aiEnabled').onchange();
-  assert.strictEqual(elements.get('#aiScale').value,'0');assert.strictEqual(elements.get('#previewAI').disabled,true);
+  assert.strictEqual(vm.runInContext('aiActive',context),false);assert.strictEqual(elements.get('#previewAI').disabled,true);
   elements.get('#aiEnabled').checked=true;elements.get('#aiEnabled').onchange();
-  assert.strictEqual(elements.get('#aiScale').value,'4');assert.strictEqual(elements.get('#aiEnabledLabel').textContent,'Uključeno');
-  elements.get('#aiScale').value='2';elements.get('#aiProfile').value='auto';elements.get('#exportFormat').value='png';elements.get('#exportSize').value='original';
+  assert.strictEqual(vm.runInContext('aiActive',context),true);assert.strictEqual(elements.get('#aiEnabledLabel').textContent,'Uključeno');
+  elements.get('#aiProfile').value='auto';elements.get('#exportFormat').value='png';elements.get('#exportSize').value='original';
   await vm.runInContext('saveScene(0)',context);
   assert.strictEqual(elements.get('#loadingOverlay').hidden,true);
   assert.strictEqual(elements.get('#appShell').inert,false);
@@ -417,15 +426,15 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   elements.get('#exportSize').value='2048';elements.get('#exportFormat').value='jpeg';
   await vm.runInContext('saveScene(1)',context);
   assert.strictEqual(downloads.at(-1).name,'deo-02.jpg');
+  assert.deepStrictEqual(calls.at(-1),[20,15,4]);
   assert.deepStrictEqual(blobCalls.at(-1),{width:2048,height:2048,mime:'image/jpeg',quality:.98});
-  elements.get('#exportSize').value='original';elements.get('#exportFormat').value='png';
-  for(const scale of [6,8]){
-    elements.get('#aiScale').value=String(scale);
+  elements.get('#exportFormat').value='png';
+  for(const size of [3072,4096]){
+    elements.get('#exportSize').value=String(size);
     await vm.runInContext('saveScene(0)',context);
     assert.deepStrictEqual(calls.at(-1),[20,15,4]);
-    assert.deepStrictEqual(blobCalls.at(-1),{width:20*scale,height:15*scale,mime:'image/png',quality:.98});
+    assert.deepStrictEqual(blobCalls.at(-1),{width:size,height:size,mime:'image/png',quality:.98});
   }
-  elements.get('#aiScale').value='2';
   elements.get('#exportSize').value='original';elements.get('#exportFormat').value='png';
   const start=calls.length;
   const files=await vm.runInContext('makeFiles()',context);
@@ -434,6 +443,8 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   // AI preview and source preview use separate full-resolution images.
   await elements.get('#previewAI').onclick();
   assert.strictEqual(elements.get('#aiComparison').hidden,false);
+  assert.strictEqual(elements.get('#comparisonBackdrop').hidden,false);
+  assert.strictEqual(document.body.style.overflow,'hidden');
   assert.strictEqual(elements.get('#compareFrame').style.width,'40px');
   assert.strictEqual(elements.get('#compareFrame').style.height,'30px');
   vm.runInContext('comparisonSize={width:2000,height:1000};sizeComparison()',context);
@@ -442,14 +453,24 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   assert(elements.get('#aiResultInfo').textContent.includes('20 × 15 px → 40 × 30 px · PNG · AI 2×'));
   const enhancedURL=elements.get('#comparisonImage').src;
   elements.get('#showOriginal').onclick();assert.notStrictEqual(elements.get('#comparisonImage').src,enhancedURL);
+  elements.get('#openFullImage').onclick();
+  const originalTab=opened.at(-1).url;
   elements.get('#compareSlider').value='75';elements.get('#compareSlider').oninput();
   assert.strictEqual(elements.get('#comparisonImage').src,enhancedURL);
   assert.strictEqual(elements.get('#compareFrame').style['--split'],'75%');
   assert.strictEqual(elements.get('#comparisonTitle').textContent,'Deo 1');
   elements.get('#showEnhanced').onclick();assert.strictEqual(elements.get('#comparisonImage').src,enhancedURL);
-  elements.get('#closeComparison').onclick();assert.strictEqual(revoked.length,2);
+  elements.get('#openFullImage').onclick();
+  assert.strictEqual(opened.at(-1).target,'_blank');
+  assert.strictEqual(opened.at(-1).features,'noopener');
+  assert.notStrictEqual(opened.at(-1).url,enhancedURL);
+  assert.notStrictEqual(opened.at(-1).url,originalTab);
+  elements.get('#comparisonBackdrop').onclick();assert.strictEqual(revoked.length,2);
+  assert.strictEqual(elements.get('#aiComparison').hidden,true);
+  assert.strictEqual(elements.get('#comparisonBackdrop').hidden,true);
+  assert.strictEqual(document.body.style.overflow,'');
   // The comparison displays the selected square JPEG, and its download reuses that exact Blob.
-  elements.get('#exportSize').value='2048';elements.get('#exportFormat').value='jpeg';elements.get('#aiScale').value='8';
+  elements.get('#exportSize').value='2048';elements.get('#exportFormat').value='jpeg';
   const beforePreview=blobCalls.length,beforeAI=calls.length;
   await elements.get('#previewAI').onclick();
   assert.strictEqual(calls.length,beforeAI+1);assert.deepStrictEqual(calls.at(-1),[20,15,4]);
@@ -457,7 +478,7 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
     {width:2048,height:2048,mime:'image/jpeg',quality:.98},
     {width:2048,height:2048,mime:'image/jpeg',quality:.98}
   ]);
-  assert(elements.get('#aiResultInfo').textContent.includes('2048 × 2048 px · JPEG · AI 8×'));
+  assert(elements.get('#aiResultInfo').textContent.includes('2048 × 2048 px · JPEG · AI 4× + dodatno uvećanje'));
   const compared=vm.runInContext('comparisonDownload.blob',context),aiCount=calls.length;
   elements.get('#downloadCompared').onclick();
   assert.strictEqual(downloads.at(-1).blob,compared);
@@ -466,40 +487,47 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   elements.get('#closeComparison').onclick();assert.strictEqual(revoked.length,4);
   // Text mode upscales without loading an AI model and previews the selected format.
   elements.get('#processingMode').value='text';elements.get('#processingMode').onchange();
-  elements.get('#exportSize').value='original';elements.get('#aiScale').value='8';
   const textCalls=calls.length;
   await vm.runInContext('saveScene(0)',context);
   assert.strictEqual(calls.length,textCalls);
-  assert.deepStrictEqual(blobCalls.at(-1),{width:160,height:120,mime:'image/jpeg',quality:.98});
+  assert.deepStrictEqual(blobCalls.at(-1),{width:2048,height:2048,mime:'image/jpeg',quality:.98});
   await elements.get('#previewAI').onclick();
   assert.strictEqual(calls.length,textCalls);
   assert.strictEqual(elements.get('#showEnhanced').textContent,'Očuvaj slova');
-  assert.strictEqual(elements.get('#enhancedTag').textContent,'Očuvaj slova (8× · JPEG)');
+  assert.strictEqual(elements.get('#enhancedTag').textContent,'Očuvaj slova · JPEG');
   assert.strictEqual(elements.get('#aiEnabled').disabled,true);
   elements.get('#closeComparison').onclick();
   elements.get('#processingMode').value='photo';elements.get('#processingMode').onchange();
-  // A mobile-sized 4× AI result may be interpolated to 8× if the final canvas fits.
+  // A mobile-sized 4× AI result may be interpolated to the 4096 px print target.
   const oldSettings=context.SceneAI.settings;
   context.SceneAI.settings=(profile,scale)=>({family:'slim',scale,maxPixels:8388608});
   vm.runInContext('crops[0]={x0:0,y0:0,x1:500,y1:500}',context);
-  elements.get('#exportFormat').value='png';
+  elements.get('#exportFormat').value='png';elements.get('#exportSize').value='4096';
   await vm.runInContext('saveScene(0)',context);
   assert.deepStrictEqual(calls.at(-1),[500,500,4]);
-  assert.deepStrictEqual(blobCalls.at(-1),{width:4000,height:4000,mime:'image/png',quality:.98});
-  vm.runInContext('crops[0]={x0:0,y0:0,x1:600,y1:600}',context);
+  assert.deepStrictEqual(blobCalls.at(-1),{width:4096,height:4096,mime:'image/png',quality:.98});
+  vm.runInContext('crops[0]={x0:0,y0:0,x1:800,y1:800}',context);
+  await vm.runInContext('saveScene(0)',context);
+  assert.deepStrictEqual(calls.at(-1),[800,800,2]);
+  vm.runInContext('crops[0]={x0:0,y0:0,x1:1500,y1:1500}',context);
   const beforeLimit=calls.length;
   await vm.runInContext('saveScene(0)',context);
   assert.strictEqual(calls.length,beforeLimit);
   assert.strictEqual(elements.get('#aiNotice').hidden,false);
   assert(elements.get('#aiNotice').textContent.includes('prevelik'));
+  vm.runInContext('crops[0]={x0:0,y0:0,x1:3000,y1:2000}',context);
+  elements.get('#exportSize').value='2048';const enoughPixels=calls.length;
+  await vm.runInContext('saveScene(0)',context);
+  assert.strictEqual(calls.length,enoughPixels);
+  assert.deepStrictEqual(blobCalls.at(-1),{width:2048,height:2048,mime:'image/png',quality:.98});
   vm.runInContext('crops[0]={x0:10,y0:20,x1:30,y1:35}',context);
   context.SceneAI.settings=oldSettings;
   // With AI off, export goes directly from the source pixels.
-  elements.get('#aiScale').value='0';elements.get('#exportSize').value='original';elements.get('#exportFormat').value='png';const withoutAI=calls.length;
+  elements.get('#aiEnabled').checked=false;elements.get('#aiEnabled').onchange();elements.get('#exportSize').value='original';elements.get('#exportFormat').value='png';const withoutAI=calls.length;
   await vm.runInContext('saveScene(2)',context);
   assert.strictEqual(calls.length,withoutAI);assert.strictEqual(blobCalls.at(-1).width,20);
   // Cancellation between scenes must suppress downloading a partial archive.
-  elements.get('#aiScale').value='2';const downloadCount=downloads.length;
+  elements.get('#aiEnabled').checked=true;elements.get('#aiEnabled').onchange();const downloadCount=downloads.length;
   context.SceneAI.upscale=async()=>{elements.get('#loaderCancel').onclick();assert.strictEqual(elements.get('#loaderCancel').disabled,true);throw Object.assign(Error('cancelled'),{name:'AbortError'})};
   await elements.get('#zip').onclick();
   assert.strictEqual(downloads.length,downloadCount);
@@ -507,10 +535,10 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   assert.strictEqual(elements.get('#zip').disabled,false);
   assert.strictEqual(elements.get('#file').disabled,false);
   assert.strictEqual(elements.get('#status').textContent,'Obrada je prekinuta.');
-  // Both file buttons and canvas drop use the same loader; removing clears the image state.
+  // Canvas selection and drop use the same loader; removing clears the image state.
   let chooserClicks=0;elements.get('#file').click=()=>chooserClicks++;
-  elements.get('#chooseFileCanvas').onclick();elements.get('#chooseFile').onclick();
-  assert.strictEqual(chooserClicks,2);
+  elements.get('#chooseFileCanvas').onclick();
+  assert.strictEqual(chooserClicks,1);
   let dropped=null;context.captureDropped=f=>{dropped=f};vm.runInContext('loadFile=captureDropped',context);
   const droppedFile={name:'nova.png'};
   viewer.ondragover({preventDefault(){}});assert(viewerClasses.has('drag-over'));
@@ -520,7 +548,7 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   assert.strictEqual(vm.runInContext('img',context),null);
   assert.strictEqual(vm.runInContext('crops.length',context),0);
   assert.strictEqual(elements.get('#emptyCanvas').hidden,false);
+  assert.strictEqual(elements.get('#removeImage').hidden,true);
   assert.strictEqual(elements.get('#removeImage').disabled,true);
-  assert.strictEqual(elements.get('#fileInfo').textContent,'Nijedna slika nije izabrana.');
   console.log('AI single-scene/ZIP export, PNG/JPEG, final sizing, comparison cleanup, AI-off path and cancellation without partial download: OK');
 })().catch(error=>{console.error(error);process.exitCode=1});

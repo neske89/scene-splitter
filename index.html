@@ -34,10 +34,6 @@ h2{font-size:16px;letter-spacing:-.35px;margin:0;display:flex;align-items:center
 .workspace,.canvas-panel,.sidebar{min-width:0}
 .sidebar{border:1px solid #e0e7f2;border-radius:18px;background:#ffffffb8;padding:14px;display:flex;flex-direction:column;gap:12px}
 .canvas-panel{position:relative}
-.image-controls .panel-heading{margin-bottom:10px}
-.image-buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-.image-buttons button{min-width:0;font-size:12px;padding:9px}
-#fileInfo{overflow-wrap:anywhere}
 .file-input{position:absolute;width:1px;height:1px;clip-path:inset(50%);overflow:hidden}
 .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .controls select,.controls input,select,input[type=number]{min-width:0;min-height:38px;padding:8px 11px;border:1px solid #d3dceb;border-radius:9px;background:#fbfcff;color:#1b2336}
@@ -47,7 +43,7 @@ h2{font-size:16px;letter-spacing:-.35px;margin:0;display:flex;align-items:center
 .manual-grid input{width:70px}
 .hint{font-size:12px;line-height:1.55;color:#73819b;margin:0}
 .scene-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.scene-nav{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:8px;align-items:center}
+.scene-nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;align-items:center}
 .scene-nav button{padding:10px 8px;font-size:13px}
 .badge{font-size:12px;font-weight:600;color:#64728c}
 .selection-info button{min-height:28px;font-size:12px;padding:5px 10px}
@@ -100,6 +96,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 .empty-canvas p{font-size:13px;max-width:300px;line-height:1.6;margin:0}
 .empty-canvas .hint{color:#a5afc1}
 #cropInfo{margin:8px 2px 0;font-size:11px}
+.remove-image{margin-top:10px;min-height:32px;padding:7px 11px;font-size:12px}
 .gallery{border:1px solid #e0e7f2;border-radius:18px;background:#ffffffc7;padding:14px;margin-top:18px}
 .gallery-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:15px;cursor:pointer;list-style:none}
 .gallery-heading::-webkit-details-marker{display:none}
@@ -119,6 +116,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 .card.selected .card-label{color:#0064ff;font-weight:600}
 .card button{width:100%;font-size:11px;min-height:32px;padding:7px;border-color:transparent;background:#edf1f7;gap:5px}
 .card .card-save{margin-top:4px;background:transparent;color:#65758f;min-height:24px;padding:3px}
+.comparison-backdrop{position:fixed;z-index:49;inset:0;background:#0e1d33bd}
 .comparison{position:fixed;z-index:50;top:50%;left:50%;transform:translate(-50%,-50%);min-width:min(320px,calc(100vw - 16px));max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px);overflow:auto;background:#fff;border:1px solid #dfe5ef;border-radius:16px;padding:16px;box-shadow:0 10px 30px #253f6a26,0 2px 5px #253f6a12}
 .comparison-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:15px}
 .comparison-heading button{border:0;background:transparent;padding:4px;min-height:26px;width:26px}
@@ -152,11 +150,11 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 }
 @media(max-width:1100px){body{padding:20px}.ai-options{gap:12px}.inline-field{gap:7px}}
 @media(max-width:999px){.canvas-panel{grid-row:1}.sidebar{grid-row:2}.viewer{min-height:250px}.app-header{gap:14px}.app-header .soft{font-size:12px}.app-header .soft span{max-width:100px}.sidebar{min-height:0}.privacy-panel{right:16px}}
-@media(max-width:550px){body{padding:16px 12px}h1{font-size:26px}.subtitle{font-size:13px}.app-header{margin-bottom:18px}.app-header .soft{min-width:38px;padding:9px}.app-header .soft span{display:none}.scene-nav{grid-template-columns:1fr 1.1fr 1fr;gap:6px}.scene-nav button{font-size:11px;gap:5px}.geometry{gap:8px}.zoomrow{gap:8px;grid-template-columns:auto 35px minmax(0,1fr) 35px 62px}.ai-options{gap:10px;grid-template-columns:1fr 1.2fr}.inline-field{flex-direction:column;align-items:stretch;gap:6px}.export-options{grid-template-columns:minmax(0,1fr) 85px}.gallery{padding:12px}.gallery-title{font-size:16px}.grid{grid-auto-columns:92px}.card img{height:92px}.grid-controls{gap:8px}.grid-controls button{font-size:12px;padding:9px}.comparison{padding:16px}}
+@media(max-width:550px){body{padding:16px 12px}h1{font-size:26px}.subtitle{font-size:13px}.app-header{margin-bottom:18px}.app-header .soft{min-width:38px;padding:9px}.app-header .soft span{display:none}.scene-nav{gap:6px}.scene-nav button{font-size:11px;gap:5px}.geometry{gap:8px}.zoomrow{gap:8px;grid-template-columns:auto 35px minmax(0,1fr) 35px 62px}.ai-options{gap:10px;grid-template-columns:1fr 1.2fr}.inline-field{flex-direction:column;align-items:stretch;gap:6px}.export-options{grid-template-columns:minmax(0,1fr) 85px}.gallery{padding:12px}.gallery-title{font-size:16px}.grid{grid-auto-columns:92px}.card img{height:92px}.grid-controls{gap:8px}.grid-controls button{font-size:12px;padding:9px}.comparison{padding:16px}}
 </style>
 </head>
 <body>
-<svg class="icon-sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs><symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.1"/></symbol><symbol id="icon-upload" viewBox="0 0 24 24"><path d="M7 18H5a4 4 0 0 1-.5-8A7 7 0 0 1 18 8a5 5 0 0 1 1 10h-2M12 21V10m-4 4 4-4 4 4"/></symbol><symbol id="icon-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="icon-grid" viewBox="0 0 24 24"><path d="M3 3h6v6H3zm12 0h6v6h-6zM3 15h6v6H3zm12 0h6v6h-6z"/></symbol><symbol id="icon-focus" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3"/><path d="M12 1v4m0 14v4M1 12h4m14 0h4"/></symbol><symbol id="icon-arrow-left" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></symbol><symbol id="icon-arrow-right" viewBox="0 0 24 24"><path d="m10 6 6 6-6 6"/></symbol><symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M20 9a8 8 0 1 0-1 9M20 3v6h-6"/></symbol><symbol id="icon-sparkles" viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5ZM4 2v4M2 4h4m14 14v4m-2-2h4"/></symbol><symbol id="icon-compare" viewBox="0 0 24 24"><path d="M9 4H4v16h5m6-16h5v16h-5M12 2v20"/></symbol><symbol id="icon-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></symbol><symbol id="icon-export" viewBox="0 0 24 24"><path d="M12 15V2m-5 5 5-5 5 5M8 8H4v13h16V8h-4"/></symbol><symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol><symbol id="icon-up" viewBox="0 0 24 24"><path d="m6 14 6-6 6 6"/></symbol></defs></svg>
+<svg class="icon-sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs><symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.1"/></symbol><symbol id="icon-upload" viewBox="0 0 24 24"><path d="M7 18H5a4 4 0 0 1-.5-8A7 7 0 0 1 18 8a5 5 0 0 1 1 10h-2M12 21V10m-4 4 4-4 4 4"/></symbol><symbol id="icon-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="icon-grid" viewBox="0 0 24 24"><path d="M3 3h6v6H3zm12 0h6v6h-6zM3 15h6v6H3zm12 0h6v6h-6z"/></symbol><symbol id="icon-focus" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3"/><path d="M12 1v4m0 14v4M1 12h4m14 0h4"/></symbol><symbol id="icon-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></symbol><symbol id="icon-arrow-left" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></symbol><symbol id="icon-arrow-right" viewBox="0 0 24 24"><path d="m10 6 6 6-6 6"/></symbol><symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M20 9a8 8 0 1 0-1 9M20 3v6h-6"/></symbol><symbol id="icon-sparkles" viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5ZM4 2v4M2 4h4m14 14v4m-2-2h4"/></symbol><symbol id="icon-compare" viewBox="0 0 24 24"><path d="M9 4H4v16h5m6-16h5v16h-5M12 2v20"/></symbol><symbol id="icon-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></symbol><symbol id="icon-export" viewBox="0 0 24 24"><path d="M12 15V2m-5 5 5-5 5 5M8 8H4v13h16V8h-4"/></symbol><symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol><symbol id="icon-up" viewBox="0 0 24 24"><path d="m6 14 6-6 6 6"/></symbol></defs></svg>
 <div id="appShell">
 <header class="app-header">
  <div><h1>Iseci i podeli</h1><p class="subtitle">Iseci jedan deo slike ili je podeli na više manjih slika. Podesi svaki okvir i preuzmi rezultate.</p></div>
@@ -171,19 +169,13 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 </section>
 <div class="workspace">
 <aside class="sidebar" aria-label="Kontrole za isecanje slike">
- <div class="panel image-controls">
-  <div class="panel-heading"><h2><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-upload"/></svg>Slika</h2></div>
-  <p id="fileInfo" class="hint">Nijedna slika nije izabrana.</p>
-  <input id="file" class="file-input" type="file" accept="image/*" aria-label="Izaberi sliku">
-  <div class="image-buttons"><button id="chooseFile" class="secondary">Izaberi novu sliku</button><button id="removeImage" class="secondary" disabled>Ukloni sliku</button></div>
- </div>
  <div>
   <div class="grid-controls"><label for="gridMode">Mreža</label><select id="gridMode"><option value="auto">Automatski</option><option value="manual">Ručno</option></select><button id="detect" class="primary" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-refresh"/></svg>Detektuj</button></div>
   <div id="gridSummary" class="grid-summary">Mreža —</div>
   <div id="manualGrid" class="controls manual-grid" hidden><label for="gridCols">Kolone</label><input id="gridCols" type="number" min="1" max="12" step="1" value="4"><label for="gridRows">Redovi</label><input id="gridRows" type="number" min="1" max="12" step="1" value="4"><button id="applyGrid" disabled>Primeni mrežu</button></div>
  </div>
  <div class="scene-actions"><button id="showScene" class="primary" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-eye"/></svg>Prikaži deo</button><button id="boundaries" class="secondary" disabled aria-pressed="false">Prikaži sve granice</button></div>
- <div class="scene-nav"><button id="prev" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-arrow-left"/></svg>Prethodna</button><button id="focus" class="primary" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-focus"/></svg><span id="focusLabel">Fokusiraj</span></button><button id="next" disabled>Sledeća<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-arrow-right"/></svg></button></div>
+ <div class="scene-nav"><button id="prev" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-arrow-left"/></svg>Prethodna</button><button id="next" disabled>Sledeća<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-arrow-right"/></svg></button><button id="focus" class="primary" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-focus"/></svg><span id="focusLabel">Fokusiraj</span></button><button id="overlayScene" class="secondary" disabled aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-layers"/></svg><span id="overlayLabel">Dodaj sloj</span></button></div>
  <div class="selection-info"><span id="sceneLabel" class="badge">Deo —</span></div>
  <div>
   <div class="geometry">
@@ -199,17 +191,16 @@ canvas{display:block;width:100%;height:auto;background:#222426}
   <div class="panel-heading"><h2><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-sparkles"/></svg>Obrada slike</h2><label class="ai-switch"><input id="aiEnabled" type="checkbox" checked><span id="aiEnabledLabel">Uključeno</span></label></div>
   <label class="field processing-mode" for="processingMode">Način obrade<select id="processingMode"><option value="photo">AI za slike (ESRGAN)</option><option value="text">Očuvaj slova (bez AI)</option></select></label>
   <div class="ai-options">
-   <div class="field inline-field"><label for="aiScale">Uvećanje</label><select id="aiScale"><option value="0">Bez AI</option><option value="2" selected>2×</option><option value="4">4×</option><option value="6">6×</option><option value="8">8×</option></select></div>
+   <div class="field inline-field"><label for="exportSize">Ciljna veličina</label><select id="exportSize"><option value="original">Original</option><option value="2048">2048 × 2048 px</option><option value="3072">3072 × 3072 px</option><option value="4096">4096 × 4096 px</option></select></div>
    <div class="field inline-field"><label for="aiProfile">Model</label><select id="aiProfile"><option value="auto">Automatski</option><option value="slim">ESRGAN Slim</option><option value="medium">ESRGAN Medium</option></select></div>
   </div>
   <div class="panel-actions"><button id="previewAI" class="primary" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-compare"/></svg><span id="previewLabel">Uporedi AI rezultat</span></button><button id="cancelAI" class="secondary" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg>Prekini</button></div>
-  <p class="hint panel-note"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg><span id="processingHint">Lokalni AI poboljšava izabrani deo slike. Za 6× i 8× koristi se 4× AI model, pa dodatno uvećanje. Tekst može biti izmenjen; proveri pregled pre preuzimanja.</span></p>
+  <p class="hint panel-note"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg><span id="processingHint">AI obrađuje sliku prema ciljnoj veličini za štampu. Lokalni modeli rade 2× ili 4×; ako je potrebno više, ostatak se uvećava bez AI. Tekst može biti izmenjen.</span></p>
   <p id="aiNotice" class="status" role="alert" hidden></p>
  </section>
  <section class="panel">
   <div class="panel-heading"><h2><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-export"/></svg>Izvoz slika</h2></div>
   <div class="export-options">
-   <div class="field inline-field"><label for="exportSize">Veličina</label><select id="exportSize"><option value="original">Original</option><option value="2048">2048 × 2048 px</option><option value="3072">3072 × 3072 px</option><option value="4096">4096 × 4096 px</option></select></div>
    <div class="field inline-field"><label for="exportFormat">Format</label><select id="exportFormat"><option value="png">PNG</option><option value="jpeg">JPEG</option></select></div>
   </div>
   <div class="panel-actions"><button id="zip" class="primary" disabled>Preuzmi ZIP</button><button id="cancelExport" class="secondary" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg>Prekini</button></div>
@@ -223,10 +214,13 @@ canvas{display:block;width:100%;height:auto;background:#222426}
  <div id="status" class="status" role="status" aria-live="polite">Izaberi sliku za početak.</div>
 </aside>
 <div class="canvas-panel">
+ <input id="file" class="file-input" type="file" accept="image/*" aria-label="Izaberi sliku">
  <div id="viewer" class="viewer"><div id="stage" class="stage"><canvas id="preview"></canvas></div><div id="emptyCanvas" class="empty-canvas"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-upload"/></svg><strong>Dodaj sliku za početak</strong><p>Prevuci sliku ovde ili je izaberi sa uređaja.</p><button id="chooseFileCanvas" class="primary">Izaberi sliku</button><p class="hint">PNG, JPG, WEBP i drugi podržani formati · Do 50 MB</p></div></div>
+ <button id="removeImage" class="secondary remove-image" hidden disabled>Ukloni sliku</button>
  <p id="cropInfo" class="hint"></p>
  <details id="gallery" class="gallery" open><summary class="gallery-heading"><span class="gallery-title"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-grid"/></svg><span id="galleryTitle">Delovi slike (0)</span></span><span class="gallery-toggle"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-up"/></svg><span class="when-open">Zatvori prikaz</span><span class="when-closed">Otvori prikaz</span></span></summary><div id="grid" class="grid"></div></details>
- <section id="aiComparison" class="comparison" hidden role="dialog" aria-labelledby="comparisonTitle" tabindex="-1">
+ <div id="comparisonBackdrop" class="comparison-backdrop" hidden aria-hidden="true"></div>
+ <section id="aiComparison" class="comparison" hidden role="dialog" aria-modal="true" aria-labelledby="comparisonTitle" tabindex="-1">
   <div class="comparison-heading"><h2 id="comparisonTitle">Deo slike</h2><button id="closeComparison" aria-label="Zatvori poređenje"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg></button></div>
   <div id="compareFrame" class="compare-frame">
    <img id="comparisonOriginal" alt="Original izabranog dela"><img id="comparisonImage" alt="AI rezultat izabranog dela">
@@ -236,6 +230,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
   </div>
   <p id="aiResultInfo" class="hint"></p>
   <div id="compareModes" class="controls compare-modes"><button id="showOriginal">Original</button><button id="showEnhanced">Obrađeno</button></div>
+  <button id="openFullImage" class="secondary" style="width:100%">Otvori sliku u punoj veličini</button>
   <button id="downloadCompared" class="primary"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-download"/></svg>Preuzmi deo</button>
  </section>
 </div>
@@ -256,28 +251,28 @@ const boundariesBtn=$('#boundaries'),alignScene=$('#alignScene'),alignEdge=$('#a
 const cropWidth=$('#cropWidth'),cropHeight=$('#cropHeight'),dimensionsBtn=$('#applyDimensions');
 const aspectRatio=$('#aspectRatio'),aspectWidth=$('#aspectWidth'),aspectHeight=$('#aspectHeight'),aspectBtn=$('#applyAspect');
 const geometryControls=[cropWidth,cropHeight,dimensionsBtn,aspectRatio,aspectWidth,aspectHeight,aspectBtn];
-const aiScale=$('#aiScale'),aiProfile=$('#aiProfile'),processingMode=$('#processingMode'),exportFormat=$('#exportFormat'),previewAIBtn=$('#previewAI'),cancelExport=$('#cancelExport'),saveSelected=$('#saveSelected');
+const aiProfile=$('#aiProfile'),processingMode=$('#processingMode'),exportFormat=$('#exportFormat'),previewAIBtn=$('#previewAI'),cancelExport=$('#cancelExport'),saveSelected=$('#saveSelected');
 const loadingOverlay=$('#loadingOverlay'),loaderProgress=$('#loaderProgress'),loaderCancel=$('#loaderCancel');
-let cancelRequested=false,comparisonURLs=[],comparisonDownload=null,lastAIScale='2';
+let cancelRequested=false,comparisonURLs=[],comparisonBlobs=[],comparisonActive=0,comparisonDownload=null,aiActive=true;
 let busyReturnFocus=null,comparisonSize=null;
 const aspectLocks=new Map();
 const gridMode=$('#gridMode'),gridColsInput=$('#gridCols'),gridRowsInput=$('#gridRows'),applyGrid=$('#applyGrid');
 let gridCols=1,gridRows=1;
-let canvasOffset=0,showBoundaries=false;
+let canvasOffset=0,showBoundaries=false,sceneOverlay=false;
 let img=null,crops=[],selected=0,focusedScene=null,focusSnapshot=null,lastFocusTransfer=null,zoom=1,panX=0,panY=0,drag=null,pointers=new Map(),pinch=null,dirty=new Set(),loadId=0,exporting=false;
 
 file.onchange=()=>loadFile(file.files[0]);
 function chooseImage(){file.value='';file.click()}
-$('#chooseFile').onclick=$('#chooseFileCanvas').onclick=chooseImage;
+$('#chooseFileCanvas').onclick=chooseImage;
 function removeImage(){
   if(exporting)return;
-  loadId++;file.value='';clearComparison();img=null;crops=[];selected=0;gridCols=gridRows=1;canvasOffset=0;showBoundaries=false;
+  loadId++;file.value='';clearComparison();img=null;crops=[];selected=0;gridCols=gridRows=1;canvasOffset=0;showBoundaries=false;sceneOverlay=false;
   drag=pinch=null;pointers.clear();dirty.clear();aspectLocks.clear();grid.innerHTML='';cv.width=cv.height=1;
   viewer.classList.remove('drag-over');viewer.style.height='';stage.style.width='';gridMode.value='auto';gridColsInput.value=gridRowsInput.value='4';
   boundariesBtn.textContent='Prikaži sve granice';boundariesBtn.setAttribute('aria-pressed','false');
-  [detectBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls].forEach(x=>x.disabled=true);
-  $('#fileInfo').textContent='Nijedna slika nije izabrana.';$('#cropInfo').textContent='';$('#aiNotice').hidden=true;
-  resetView();updateUI();status.textContent='Izaberi sliku za početak.';
+  [detectBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,$('#overlayScene'),boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls].forEach(x=>x.disabled=true);
+  $('#cropInfo').textContent='';$('#aiNotice').hidden=true;
+  syncOverlayButton();resetView();updateUI();status.textContent='Izaberi sliku za početak.';
 }
 $('#removeImage').onclick=removeImage;
 function loadFile(f){
@@ -288,13 +283,12 @@ function loadFile(f){
   loaded.onload=()=>{
     URL.revokeObjectURL(u); if(id!==loadId)return;
     if(loaded.naturalWidth<32||loaded.naturalHeight<32){status.textContent='Slika mora imati najmanje 32 × 32 px.';return}
-    $('#fileInfo').textContent=f.name+' · '+loaded.naturalWidth+' × '+loaded.naturalHeight+' px';
     clearComparison();img=loaded;canvasOffset=Math.ceil(Math.max(img.naturalWidth,img.naturalHeight)*.05);
     cv.width=img.naturalWidth+canvasOffset*2;cv.height=img.naturalHeight+canvasOffset*2;
-    drag=null;pinch=null;pointers.clear();dirty.clear();showBoundaries=false;
+    drag=null;pinch=null;pointers.clear();dirty.clear();showBoundaries=false;sceneOverlay=false;syncOverlayButton();
     boundariesBtn.textContent='Prikaži sve granice';boundariesBtn.setAttribute('aria-pressed','false');
     $('#aiNotice').hidden=true;resetView();detect({newImage:true});
-    [detectBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls].forEach(x=>x.disabled=false);
+    [detectBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,$('#overlayScene'),boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls].forEach(x=>x.disabled=false);
     updateUI();
   };
   loaded.onerror=()=>{URL.revokeObjectURL(u);if(id===loadId)status.textContent='Slika nije učitana. Izaberi JPEG, PNG ili drugi podržani format.'};
@@ -355,25 +349,26 @@ function updateUI(){
   syncDimensions();syncAspect();
   syncFocusButton();
   $('#emptyCanvas').hidden=!!img;
-  const textMode=processingMode.value==='text',enabled=Number(aiScale.value)>0&&!textMode;
+  const textMode=processingMode.value==='text',enabled=aiActive&&!textMode;
   $('#aiEnabled').checked=enabled;
   $('#aiEnabled').disabled=exporting||textMode;
   $('#aiEnabledLabel').textContent=textMode?'Bez AI':enabled?'Uključeno':'Isključeno';
   aiProfile.disabled=exporting||textMode;
   $('#previewLabel').textContent=textMode?'Uporedi rezultat':'Uporedi AI rezultat';
-  $('#processingHint').textContent=textMode?'Uvećava postojeće piksele bez AI rekonstrukcije i bez prepisivanja teksta. Slova neće dobiti detalje kojih nema na originalu.':'Lokalni AI poboljšava izabrani deo slike. Za 6× i 8× koristi se 4× AI model, pa dodatno uvećanje. Tekst može biti izmenjen; proveri pregled pre preuzimanja.';
+  $('#processingHint').textContent=textMode?'Uvećava postojeće piksele bez AI rekonstrukcije i bez prepisivanja teksta. Slova neće dobiti detalje kojih nema na originalu.':'AI bira lokalni 2× ili 4× model prema ciljnoj veličini. Kada cilj traži više, ostatak se uvećava bez AI. Tekst može biti izmenjen; proveri pregled.';
   $('#showScene').disabled=exporting||!img;$('#downloadCompared').disabled=exporting||!img;
-  $('#chooseFile').disabled=$('#chooseFileCanvas').disabled=exporting;
-  $('#removeImage').disabled=exporting||!img;
+  $('#chooseFileCanvas').disabled=exporting;
+  $('#removeImage').hidden=!img;$('#removeImage').disabled=exporting||!img;
   $('#cancelAI').disabled=!exporting||cancelRequested;
   $('#galleryTitle').textContent='Delovi slike ('+crops.length+')';
-  $('#exportSummary').textContent=img?'Delova: '+crops.length+' · '+(exportSize.value==='original'?'Original'+(Number(aiScale.value)?' '+aiScale.value+'×':''):exportSize.value+' × '+exportSize.value+' px')+' · '+(exportFormat.value==='jpeg'?'JPEG':'PNG')+' · '+(textMode?'Slova bez AI':enabled?'AI '+aiScale.value+'×':'AI isključen'):'Izaberi sliku za isecanje ili deljenje.';
+  $('#exportSummary').textContent=img?'Delova: '+crops.length+' · '+(exportSize.value==='original'?'Original':exportSize.value+' × '+exportSize.value+' px')+' · '+(exportFormat.value==='jpeg'?'JPEG':'PNG')+' · '+(textMode?'Slova bez AI':enabled?'AI uključen':'AI isključen'):'Izaberi sliku za isecanje ili deljenje.';
   if(!exporting)zipBtn.textContent='Preuzmi ZIP'+(img?' ('+crops.length+')':'');
   $('#manualGrid').hidden=gridMode.value!=='manual';
   $('#gridSummary').textContent=img?gridCols+' × '+gridRows+' · delova: '+crops.length:'Mreža —';
   applyGrid.disabled=exporting||!img;
   [gridMode,gridColsInput,gridRowsInput].forEach(control=>control.disabled=exporting);
-  saveSelected.disabled=exporting||!img;previewAIBtn.disabled=exporting||!img||!Number(aiScale.value);
+  saveSelected.disabled=exporting||!img;previewAIBtn.disabled=exporting||!img||(!enabled&&!textMode);
+  $('#overlayScene').disabled=exporting||!img;
   sceneLabel.textContent=img?'Deo '+(selected+1)+' / '+crops.length:'Deo —';
   prev.disabled=exporting||!img||selected===0; next.disabled=exporting||!img||selected===crops.length-1;
   const reference=Number(alignScene.value);
@@ -389,6 +384,11 @@ function syncFocusButton(){
   $('#focusLabel').textContent=focused?'Ukloni fokus':'Fokusiraj';
   focusBtn.setAttribute('aria-pressed',String(focused));
 }
+function syncOverlayButton(){
+  $('#overlayLabel').textContent=sceneOverlay?'Ukloni sloj':'Dodaj sloj';
+  $('#overlayScene').setAttribute('aria-pressed',String(sceneOverlay));
+}
+$('#overlayScene').onclick=()=>{if(!img||exporting)return;sceneOverlay=!sceneOverlay;syncOverlayButton();draw()};
 function select(i,focus=false,leaveOverview=true){
   if(leaveOverview&&showBoundaries)setBoundaries(false);
   const next=Math.max(0,Math.min(crops.length-1,i));
@@ -524,6 +524,9 @@ function draw(){
   if(!img)return;
   ctx.clearRect(0,0,cv.width,cv.height);
   ctx.save();ctx.translate(canvasOffset,canvasOffset);ctx.drawImage(img,0,0);
+  if(sceneOverlay&&crops[selected]){
+    const c=crops[selected];ctx.fillStyle='rgba(0,100,255,.25)';ctx.fillRect(c.x0,c.y0,c.x1-c.x0,c.y1-c.y0);
+  }
   const scale=cv.width/cv.getBoundingClientRect().width;
   for(const i of visibleScenes()){
     const c=crops[i],sizes=dotSizes(i);
@@ -666,7 +669,7 @@ function setProgress(message,percent=null){
 function setBusy(busy,title='Obrada slike'){
   if(busy){busyReturnFocus=document.activeElement;cancelRequested=false;$('#loaderTitle').textContent=title;setProgress('Pripremam obradu…');}
   exporting=busy;cancelExport.disabled=!busy;drag=null;pinch=null;pointers.clear();
-  [file,gridMode,gridColsInput,gridRowsInput,applyGrid,detectBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls,exportSize,aiScale,aiProfile,processingMode,exportFormat,saveSelected,previewAIBtn,...grid.querySelectorAll('button')].forEach(x=>x.disabled=busy);
+  [file,gridMode,gridColsInput,gridRowsInput,applyGrid,detectBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,$('#overlayScene'),boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls,exportSize,aiProfile,processingMode,exportFormat,saveSelected,previewAIBtn,...grid.querySelectorAll('button')].forEach(x=>x.disabled=busy);
   updateUI();
   loadingOverlay.hidden=!busy;$('#appShell').inert=busy;document.body.style.overflow=busy?'hidden':'';
   loaderCancel.disabled=!busy||cancelRequested;
@@ -710,22 +713,26 @@ function ensureNotCancelled(){if(cancelRequested)throw Object.assign(Error('Obra
 cancelExport.onclick=()=>{if(!exporting||cancelRequested)return;cancelRequested=true;cancelExport.disabled=true;loaderCancel.disabled=true;$('#cancelAI').disabled=true;SceneAI.abort();setProgress('Prekidam obradu…')};
 loaderCancel.onclick=()=>cancelExport.onclick();
 function sceneFilename(index){return 'deo-'+String(index+1).padStart(2,'0')+(exportFormat.value==='jpeg'?'.jpg':'.png')}
+function aiPlan(c){
+  if(processingMode.value==='text'||!aiActive)return {scale:0};
+  const width=Math.round(c.x1-c.x0),height=Math.round(c.y1-c.y0),target=Number(exportSize.value),longSide=Math.max(width,height);
+  if(target&&longSide>=target)return {scale:0};
+  const required=target?target/longSide:2;
+  let scale=required>2?4:2,options=SceneAI.settings(aiProfile.value,scale);
+  const fits=s=>width*height*s*s<=options.maxPixels&&width*s<=8192&&height*s<=8192;
+  if(scale===4&&!fits(4)){scale=2;options=SceneAI.settings(aiProfile.value,scale)}
+  if(!fits(scale))throw Error('AI korak je prevelik za ovaj uređaj. Izaberi manji deo slike ili režim za očuvanje slova.');
+  return {scale,options,interpolated:target>longSide*scale};
+}
 async function enhancedCrop(c,index,total=1){
   ensureNotCancelled();
-  const scale=Number(aiScale.value);
-  if(!scale)return cropCanvas(c);
-  const width=Math.round(c.x1-c.x0),height=Math.round(c.y1-c.y0);
-  const baseScale=Math.min(scale,4),textMode=processingMode.value==='text';
-  const options=textMode?null:SceneAI.settings(aiProfile.value,baseScale);
-  if(![2,4,6,8].includes(scale)||width*height*scale*scale>16777216||width*scale>8192||height*scale>8192||(!textMode&&width*height*baseScale*baseScale>options.maxPixels)){
-    const message=`Rezultat ${width*scale} × ${height*scale} px je prevelik za obradu na ovom uređaju. Izaberi manje uvećanje ili manji okvir.`;
-    $('#aiNotice').textContent=message;$('#aiNotice').hidden=false;throw Error(message);
-  }
+  let plan;
+  try{plan=aiPlan(c)}catch(error){$('#aiNotice').textContent=error.message;$('#aiNotice').hidden=false;throw error}
   $('#aiNotice').hidden=true;
-  if(textMode)return fitExport(cropCanvas(c),width*scale,height*scale);
+  if(!plan.scale)return cropCanvas(c);
   const original=cropCanvas(c);
   try{
-    const result=await SceneAI.upscale(original,options,progress=>{
+    const result=await SceneAI.upscale(original,plan.options,progress=>{
       const label=total>1?`Deo ${index+1} / ${total}`:`Deo ${index+1}`;
       const part=progress.stage==='loading'?0:Math.max(0,Math.min(1,progress.value));
       setProgress(progress.stage==='loading'?`${label}: učitavam lokalni AI model…`:`${label}: AI obrada ${Math.round(part*100)}%…`,total>1?(index+part)/total*100:progress.stage==='loading'?null:part*100);
@@ -733,7 +740,7 @@ async function enhancedCrop(c,index,total=1){
     ensureNotCancelled();
     const canvas=document.createElement('canvas');canvas.width=result.width;canvas.height=result.height;
     canvas.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(result.pixels),result.width,result.height),0,0);
-    return scale>baseScale?fitExport(canvas,width*scale,height*scale):canvas;
+    return canvas;
   }finally{original.width=original.height=1}
 }
 async function prepareExport(c,index,total=1){return fitExport(await enhancedCrop(c,index,total))}
@@ -748,17 +755,18 @@ async function saveScene(index){
   finally{setBusy(false)}
 }
 saveSelected.onclick=()=>saveScene(selected);
-aiScale.onchange=()=>{if(Number(aiScale.value))lastAIScale=aiScale.value;$('#aiNotice').hidden=true;clearComparison();updateUI()};
-$('#aiEnabled').onchange=()=>{aiScale.value=$('#aiEnabled').checked?lastAIScale:'0';clearComparison();updateUI()};
+$('#aiEnabled').onchange=()=>{aiActive=$('#aiEnabled').checked;$('#aiNotice').hidden=true;clearComparison();updateUI()};
 aiProfile.onchange=()=>{clearComparison();updateUI()};
-processingMode.onchange=()=>{if(processingMode.value==='text'&&!Number(aiScale.value))aiScale.value=lastAIScale;$('#aiNotice').hidden=true;clearComparison();updateUI()};
+processingMode.onchange=()=>{$('#aiNotice').hidden=true;clearComparison();updateUI()};
 exportSize.onchange=exportFormat.onchange=()=>{clearComparison();updateUI()};
 $('#cancelAI').onclick=()=>{cancelExport.onclick();$('#cancelAI').disabled=true};
 
 function clearComparison(){
   comparisonURLs.forEach(url=>URL.revokeObjectURL(url));comparisonURLs=[];
+  comparisonBlobs=[];comparisonActive=0;
   comparisonDownload=null;
-  const wasOpen=!$('#aiComparison').hidden;$('#aiComparison').hidden=true;
+  const wasOpen=!$('#aiComparison').hidden;$('#aiComparison').hidden=true;$('#comparisonBackdrop').hidden=true;
+  if(wasOpen&&!exporting)document.body.style.overflow='';
   comparisonSize=null;
   if(wasOpen)$('#showScene').focus?.();
   $('#comparisonImage').removeAttribute('src');$('#comparisonOriginal').removeAttribute('src');
@@ -767,7 +775,7 @@ function setComparePosition(value){
   $('#compareSlider').value=value;$('#compareFrame').style.setProperty('--split',value+'%');
 }
 $('#compareSlider').oninput=()=>{
-  if(comparisonURLs[1]){$('#comparisonImage').src=comparisonURLs[1];$('#comparisonImage').alt=processingMode.value==='text'?'Uvećani deo bez AI':'AI rezultat izabranog dela'}
+  if(comparisonURLs[1]){$('#comparisonImage').src=comparisonURLs[1];comparisonActive=1;$('#comparisonImage').alt=processingMode.value==='text'?'Uvećani deo bez AI':'AI rezultat izabranog dela'}
   setComparePosition(Number($('#compareSlider').value));
 };
 function sizeComparison(){
@@ -784,27 +792,29 @@ function sizeComparison(){
 }
 function openComparison(index,info,enhanced=true,width=1,height=1,blob=null){
   const image=$('#comparisonImage');image.src=comparisonURLs[enhanced?1:0];
+  comparisonActive=enhanced?1:0;
   image.alt=enhanced?(processingMode.value==='text'?'Uvećani deo bez AI':'AI rezultat dela '+(index+1)):'Original dela '+(index+1);
   $('#comparisonOriginal').src=comparisonURLs[0];
   $('#comparisonTitle').textContent='Deo '+(index+1);
   const format=exportFormat.value==='jpeg'?'JPEG':'PNG';
   $('#originalTag').textContent=enhanced?'Original · '+format:'Original';
-  $('#enhancedTag').textContent=(processingMode.value==='text'?'Očuvaj slova':'AI rezultat')+' ('+aiScale.value+'× · '+format+')';
-  $('#showEnhanced').textContent=processingMode.value==='text'?'Očuvaj slova':'AI rezultat';
+  const plan=enhanced?aiPlan(crops[index]):{scale:0};
+  $('#enhancedTag').textContent=(processingMode.value==='text'?'Očuvaj slova':plan.scale?'AI rezultat '+plan.scale+'×':'Bez AI')+' · '+format;
+  $('#showEnhanced').textContent=processingMode.value==='text'?'Očuvaj slova':plan.scale?'AI rezultat':'Bez AI';
   ['#compareTags','#compareDivider','#compareSlider','#compareModes'].forEach(id=>$(id).hidden=!enhanced);
   setComparePosition(enhanced?50:100);
-  $('#showOriginal').onclick=()=>{image.src=comparisonURLs[0];image.alt='Original dela '+(index+1);setComparePosition(100)};
-  $('#showEnhanced').onclick=()=>{image.src=comparisonURLs[1];image.alt=processingMode.value==='text'?'Uvećani deo bez AI':'AI rezultat dela '+(index+1);setComparePosition(0)};
+  $('#showOriginal').onclick=()=>{comparisonActive=0;image.src=comparisonURLs[0];image.alt='Original dela '+(index+1);setComparePosition(100)};
+  $('#showEnhanced').onclick=()=>{comparisonActive=1;image.src=comparisonURLs[1];image.alt=processingMode.value==='text'?'Uvećani deo bez AI':'AI rezultat dela '+(index+1);setComparePosition(0)};
   comparisonDownload=blob?{blob,name:sceneFilename(index)}:null;
   $('#downloadCompared').onclick=()=>comparisonDownload?download(comparisonDownload.blob,comparisonDownload.name):saveScene(index);
-  $('#aiResultInfo').textContent=info;comparisonSize={width,height};$('#aiComparison').hidden=false;sizeComparison();$('#aiComparison').focus?.();
+  $('#aiResultInfo').textContent=info;comparisonSize={width,height};$('#comparisonBackdrop').hidden=false;$('#aiComparison').hidden=false;document.body.style.overflow='hidden';sizeComparison();$('#aiComparison').focus?.();
 }
 $('#showScene').onclick=async()=>{
   const index=selected,c={...crops[index]};
   let ready=false;
   try{
     setBusy(true,'Prikaz dela slike');clearComparison();setProgress('Pripremam deo '+(index+1)+'…');
-    comparisonURLs.push(URL.createObjectURL(await imageBlob(cropCanvas(c),'png')));ensureNotCancelled();
+    const blob=await imageBlob(cropCanvas(c),'png');comparisonBlobs=[blob];comparisonURLs.push(URL.createObjectURL(blob));ensureNotCancelled();
     ready=true;
   }catch(error){clearComparison();status.textContent=error.name==='AbortError'?'Obrada je prekinuta.':'Greška: '+error.message}
   finally{setBusy(false)}
@@ -812,19 +822,25 @@ $('#showScene').onclick=async()=>{
 };
 
 $('#closeComparison').onclick=clearComparison;
+$('#comparisonBackdrop').onclick=clearComparison;
+$('#openFullImage').onclick=()=>{
+  const blob=comparisonBlobs[comparisonActive];if(!blob)return;
+  const url=URL.createObjectURL(blob);window.open(url,'_blank','noopener');const timer=setTimeout(()=>URL.revokeObjectURL(url),300000);timer?.unref?.();
+};
 previewAIBtn.onclick=async()=>{
   let original,enhanced,ready=null;
   try{
     setBusy(true,processingMode.value==='text'?'Poređenje rezultata':'Poređenje AI rezultata');clearComparison();const index=selected,c={...crops[index]};
+    const plan=aiPlan(c);
     enhanced=await prepareExport(c,index);ensureNotCancelled();
     const width=enhanced.width,height=enhanced.height,format=exportFormat.value==='jpeg'?'JPEG':'PNG';
-    const info=`${c.x1-c.x0} × ${c.y1-c.y0} px → ${width} × ${height} px · ${format} · ${processingMode.value==='text'?'Bez AI':`AI ${aiScale.value}×`}`+
-      (processingMode.value==='photo'&&Number(aiScale.value)>4?' (4× model + dodatno uvećanje)':'');
+    const info=`${c.x1-c.x0} × ${c.y1-c.y0} px → ${width} × ${height} px · ${format} · ${processingMode.value==='text'?'Bez AI':plan.scale?`AI ${plan.scale}×`:'Bez AI'}`+
+      (plan.interpolated?' + dodatno uvećanje':'');
     setProgress('Pripremam poređenje…',100);
     const enhancedBlob=await imageBlob(enhanced);enhanced=null;ensureNotCancelled();
     original=fitExport(cropCanvas(c),width,height);
     const originalBlob=await imageBlob(original);original=null;ensureNotCancelled();
-    comparisonURLs.push(URL.createObjectURL(originalBlob),URL.createObjectURL(enhancedBlob));
+    comparisonBlobs=[originalBlob,enhancedBlob];comparisonURLs.push(URL.createObjectURL(originalBlob),URL.createObjectURL(enhancedBlob));
     ready={index,info,width,height,blob:enhancedBlob};
     status.textContent='Poređenje dela '+(index+1)+' je spremno.';
   }catch(error){clearComparison();status.textContent=error.name==='AbortError'?'Obrada je prekinuta.':'Greška: '+error.message}
