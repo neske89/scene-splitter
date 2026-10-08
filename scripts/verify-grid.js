@@ -37,14 +37,14 @@ assert.strictEqual(SceneGrid.detect(f.data,f.w,f.h).crops.length,1);
 // Use a separate app VM to exercise detection, controls, topology and ZIP count.
 const elements=new Map();let pixels=fixture(3,3);
 const drawing=new Proxy({getImageData:()=>({data:pixels.data})},{get:(obj,key)=>key in obj?obj[key]:()=>{}});
-function element(){return {value:'',style:{setProperty(name,value){this[name]=value}},disabled:true,children:[],getContext:()=>drawing,getBoundingClientRect:()=>({left:0,top:0,width:480,height:360}),querySelectorAll:()=>[],setAttribute(){},removeAttribute(){}}}
-const document={querySelector(s){if(!elements.has(s))elements.set(s,element());return elements.get(s)},createElement:element};
+function element(){return {value:'',style:{setProperty(name,value){this[name]=value}},disabled:true,children:[],dataset:{},classList:{toggle(){}},append(...children){this.children.push(...children)},getContext:()=>drawing,getBoundingClientRect:()=>({left:0,top:0,width:480,height:360}),querySelector:()=>element(),querySelectorAll:()=>[],toDataURL:()=>'',setAttribute(){},removeAttribute(){}}}
+const document={body:{style:{}},querySelector(s){if(!elements.has(s))elements.set(s,element());return elements.get(s)},createElement:element};
 const app=vm.createContext({document,SceneGrid,navigator:{},window:{addEventListener(){}},Map,Blob,TextEncoder,Uint8Array,requestAnimationFrame:cb=>cb()});
 vm.runInContext(fs.readFileSync('index.html','utf8').match(/<script>([\s\S]*?)<\/script>/)[1],app);
 elements.get('#gridMode').value='auto';
 vm.runInContext('img={naturalWidth:480,naturalHeight:360};cv.width=480;cv.height=360;detect()',app);
 assert.strictEqual(vm.runInContext('crops.length',app),9);
-assert.strictEqual(elements.get('#sceneLabel').textContent,'Scena 1 / 9');
+assert.strictEqual(elements.get('#sceneLabel').textContent,'Deo 1 / 9');
 assert.strictEqual(elements.get('#manualGrid').hidden,true);
 assert.strictEqual(vm.runInContext('alignmentPoints(8).some(p=>p.reference>8)',app),false);
 assert.strictEqual(vm.runInContext('alignmentPoints(8).filter(p=>p.arrow==="→"||p.arrow==="↓").length',app),0);
@@ -78,7 +78,7 @@ elements.get('#exportFormat').value='png';
 vm.runInContext('prepareExport=fakeExport;imageBlob=fakeBlob',app);
 (async()=>{
  const files=await vm.runInContext('makeFiles()',app);
- assert.strictEqual(files.length,9);assert.strictEqual(exportCount,9);assert.strictEqual(files.at(-1).name,'scene-09.png');
+ assert.strictEqual(files.length,9);assert.strictEqual(exportCount,9);assert.strictEqual(files.at(-1).name,'deo-09.png');
  const zip=await vm.runInContext('zipBlob',app)(files).arrayBuffer();assert.strictEqual(Buffer.from(zip).readUInt16LE(zip.byteLength-12),9);
  console.log('Auto 3×3/4×4/rectangular/uneven grids, bright/dark/noisy gutters, no-grid fallback, manual controls, neighbor topology and 9-scene ZIP: OK');
 })().catch(e=>{console.error(e);process.exitCode=1});

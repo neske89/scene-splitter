@@ -1,4 +1,4 @@
-const CACHE='scene-splitter-v14';
+const CACHE='scene-splitter-v15';
 const ASSETS=['./','./index.html','./ai.js','./grid-detection.js','./ai-worker.js','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 const SCOPE=new URL('./',self.location.href).href;
 

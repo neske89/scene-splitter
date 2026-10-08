@@ -120,12 +120,12 @@ console.log('edge priority, touch selection, independent drag, interrupted gestu
   fs.writeFileSync('/tmp/scene-splitter-verify.zip',Buffer.from(await archive.arrayBuffer()));
   const handlers={},deleted=[],stored=[];
   const cache={addAll:async assets=>assert(assets.includes('./index.html')&&assets.includes('./grid-detection.js')),put:async(key,response)=>stored.push(key)};
-  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io',href:'https://neske89.github.io/scene-splitter/sw.js'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11','scene-splitter-v12','scene-splitter-v13','scene-splitter-v14','unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
+  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io',href:'https://neske89.github.io/scene-splitter/sw.js'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11','scene-splitter-v12','scene-splitter-v13','scene-splitter-v14','scene-splitter-v15','unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
   vm.runInContext(fs.readFileSync(__dirname+'/sw.js','utf8'),swContext);
   let pending;
   handlers.install({waitUntil:p=>pending=p});await pending;
   handlers.activate({waitUntil:p=>pending=p});await pending;
-  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11','scene-splitter-v12','scene-splitter-v13']);
+  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11','scene-splitter-v12','scene-splitter-v13','scene-splitter-v14']);
   let response,background;
   handlers.fetch({request:{method:'GET',url:'https://neske89.github.io/scene-splitter/',mode:'navigate'},respondWith:p=>response=p,waitUntil:p=>background=p});
   assert((await response).ok);await background;assert.deepStrictEqual(stored,['./index.html']);
@@ -385,7 +385,7 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   context.setTimeout=setTimeout;
   context.ImageData=class {constructor(data,width,height){this.data=data;this.width=width;this.height=height}};
   context.URL={createObjectURL:()=>`blob:test-${Math.random()}`,revokeObjectURL:url=>revoked.push(url)};
-  context.SceneAI={settings:(profile,scale)=>({family:'slim',scale}),abort:()=>{},upscale:async(canvas,options,progress)=>{
+  context.SceneAI={settings:(profile,scale)=>({family:'slim',scale,maxPixels:16777216}),abort:()=>{},upscale:async(canvas,options,progress)=>{
     calls.push([canvas.width,canvas.height,options.scale]);
     progress({stage:'processing',value:1});
     if(vm.runInContext('exporting',context)){
@@ -418,6 +418,14 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   assert.strictEqual(downloads.at(-1).name,'deo-02.jpg');
   assert.deepStrictEqual(blobCalls.at(-1),{width:2048,height:2048,mime:'image/jpeg',quality:.98});
   elements.get('#exportSize').value='original';elements.get('#exportFormat').value='png';
+  for(const scale of [6,8]){
+    elements.get('#aiScale').value=String(scale);
+    await vm.runInContext('saveScene(0)',context);
+    assert.deepStrictEqual(calls.at(-1),[20,15,4]);
+    assert.deepStrictEqual(blobCalls.at(-1),{width:20*scale,height:15*scale,mime:'image/png',quality:.98});
+  }
+  elements.get('#aiScale').value='2';
+  elements.get('#exportSize').value='original';elements.get('#exportFormat').value='png';
   const start=calls.length;
   const files=await vm.runInContext('makeFiles()',context);
   assert.strictEqual(files.length,16);assert.strictEqual(calls.length-start,16);
@@ -430,7 +438,7 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   vm.runInContext('comparisonSize={width:2000,height:1000};sizeComparison()',context);
   assert.strictEqual(elements.get('#compareFrame').style.width,'1150px');
   assert.strictEqual(elements.get('#compareFrame').style.height,'575px');
-  assert(elements.get('#aiResultInfo').textContent.includes('20 × 15 px → AI 40 × 30 px'));
+  assert(elements.get('#aiResultInfo').textContent.includes('20 × 15 px → 40 × 30 px · PNG · AI 2×'));
   const enhancedURL=elements.get('#comparisonImage').src;
   elements.get('#showOriginal').onclick();assert.notStrictEqual(elements.get('#comparisonImage').src,enhancedURL);
   elements.get('#compareSlider').value='75';elements.get('#compareSlider').oninput();
@@ -439,8 +447,24 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   assert.strictEqual(elements.get('#comparisonTitle').textContent,'Deo 1');
   elements.get('#showEnhanced').onclick();assert.strictEqual(elements.get('#comparisonImage').src,enhancedURL);
   elements.get('#closeComparison').onclick();assert.strictEqual(revoked.length,2);
+  // The comparison displays the selected square JPEG, and its download reuses that exact Blob.
+  elements.get('#exportSize').value='2048';elements.get('#exportFormat').value='jpeg';elements.get('#aiScale').value='8';
+  const beforePreview=blobCalls.length,beforeAI=calls.length;
+  await elements.get('#previewAI').onclick();
+  assert.strictEqual(calls.length,beforeAI+1);assert.deepStrictEqual(calls.at(-1),[20,15,4]);
+  assert.deepStrictEqual(blobCalls.slice(beforePreview),[
+    {width:2048,height:2048,mime:'image/jpeg',quality:.98},
+    {width:2048,height:2048,mime:'image/jpeg',quality:.98}
+  ]);
+  assert(elements.get('#aiResultInfo').textContent.includes('2048 × 2048 px · JPEG · AI 8×'));
+  const compared=vm.runInContext('comparisonDownload.blob',context),aiCount=calls.length;
+  elements.get('#downloadCompared').onclick();
+  assert.strictEqual(downloads.at(-1).blob,compared);
+  assert.strictEqual(downloads.at(-1).name,'deo-01.jpg');
+  assert.strictEqual(calls.length,aiCount);
+  elements.get('#closeComparison').onclick();assert.strictEqual(revoked.length,4);
   // With AI off, export goes directly from the source pixels.
-  elements.get('#aiScale').value='0';const withoutAI=calls.length;
+  elements.get('#aiScale').value='0';elements.get('#exportSize').value='original';elements.get('#exportFormat').value='png';const withoutAI=calls.length;
   await vm.runInContext('saveScene(2)',context);
   assert.strictEqual(calls.length,withoutAI);assert.strictEqual(blobCalls.at(-1).width,20);
   // Cancellation between scenes must suppress downloading a partial archive.
