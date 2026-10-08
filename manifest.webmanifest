@@ -1,6 +1,6 @@
 {
-  "name": "Scene Splitter",
-  "short_name": "Splitter",
+  "name": "Iseci i podeli",
+  "short_name": "Iseci sliku",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

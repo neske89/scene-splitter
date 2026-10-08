@@ -1,6 +1,6 @@
-# Scene Splitter
+# Iseci i podeli
 
-Static image splitter with automatic and manual grid selection for GitHub Pages.
+Crop one part of an image or split it into multiple independently adjustable parts. Static app for GitHub Pages with automatic and manual grid selection.
 
 ## GitHub Pages
 Upload these files to the repository root, then:
