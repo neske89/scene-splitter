@@ -28,6 +28,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
 .icon-sprite{position:absolute;width:0;height:0;overflow:hidden}
 .app-header{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:24px}
 .header-actions{display:flex;align-items:center;gap:8px;flex:none}
+.language-select{min-height:42px;border:1px solid #d6deec;border-radius:10px;background:#fff;color:#46516b;padding:8px;font-weight:600;cursor:pointer}
 .remove-image{background:#fff0f0;border-color:#f2b8b5;color:#b42318}
 .remove-image:hover:not(:disabled){background:#ffe1e1;border-color:#e8918b}
 h1{font-size:31px;letter-spacing:-1px;margin:0 0 5px;line-height:1.2}
@@ -151,7 +152,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 }
 @media(max-width:1100px){body{padding:20px}.inline-field{gap:7px}}
 @media(max-width:999px){.canvas-panel{grid-row:1}.sidebar{grid-row:2}.viewer{min-height:250px}.app-header{gap:14px}.app-header .soft{font-size:12px}.app-header .soft span{max-width:100px}.sidebar{min-height:0}.privacy-panel{right:16px}}
-@media(max-width:550px){body{padding:16px 12px}h1{font-size:26px}.subtitle{font-size:13px}.app-header{margin-bottom:18px}.app-header .soft,.app-header .remove-image{min-width:38px;padding:9px}.app-header .soft span,.app-header .remove-image span{display:none}.scene-nav{gap:6px}.scene-nav button{font-size:11px;gap:5px}.geometry{gap:8px}.zoomrow{gap:8px;grid-template-columns:auto 35px minmax(0,1fr) 35px 62px}.inline-field{flex-direction:column;align-items:stretch;gap:6px}.export-options{grid-template-columns:minmax(0,1fr) 85px}.gallery{padding:12px}.gallery-title{font-size:16px}.grid{grid-auto-columns:92px}.card img{height:92px}.grid-controls{gap:8px}.grid-controls button{font-size:12px;padding:9px}.comparison{padding:16px}}
+@media(max-width:550px){body{padding:16px 12px}h1{font-size:26px}.subtitle{font-size:13px}.app-header{margin-bottom:18px;flex-wrap:wrap}.app-header>div:first-child{flex-basis:100%}.header-actions{margin-left:auto}.app-header .soft,.app-header .remove-image{min-width:38px;padding:9px}.app-header .soft span,.app-header .remove-image span{display:none}.scene-nav{gap:6px}.scene-nav button{font-size:11px;gap:5px}.geometry{gap:8px}.zoomrow{gap:8px;grid-template-columns:auto 35px minmax(0,1fr) 35px 62px}.inline-field{flex-direction:column;align-items:stretch;gap:6px}.export-options{grid-template-columns:minmax(0,1fr) 85px}.gallery{padding:12px}.gallery-title{font-size:16px}.grid{grid-auto-columns:92px}.card img{height:92px}.grid-controls{gap:8px}.grid-controls button{font-size:12px;padding:9px}.comparison{padding:16px}}
 </style>
 </head>
 <body>
@@ -159,7 +160,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 <div id="appShell">
 <header class="app-header">
  <div><h1>Iseci i podeli</h1><p class="subtitle">Iseci jedan deo slike ili je podeli na više manjih slika. Podesi svaki okvir i preuzmi rezultate.</p></div>
- <div class="header-actions"><button id="removeImage" class="remove-image" hidden disabled aria-label="Ukloni sliku"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg><span>Ukloni sliku</span></button><button id="privacyToggle" class="soft" aria-expanded="false" aria-controls="privacyPanel"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg><span>Kako radi i privatnost</span></button></div>
+ <div class="header-actions"><select id="language" class="language-select" aria-label="Jezik"><option value="sr">Srpski</option><option value="en">English</option></select><button id="removeImage" class="remove-image" hidden disabled aria-label="Ukloni sliku"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg><span>Ukloni sliku</span></button><button id="privacyToggle" class="soft" aria-expanded="false" aria-controls="privacyPanel"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg><span>Kako radi i privatnost</span></button></div>
 </header>
 <section id="privacyPanel" class="privacy-panel" hidden aria-label="Kako radi i privatnost">
  <div class="panel-heading"><h2>Kako radi i privatnost</h2><button id="closePrivacy" aria-label="Zatvori"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg></button></div>
@@ -240,6 +241,123 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 <script src="./ai.js"></script>
 <script src="./grid-detection.js"></script>
 <script>
+const EN={
+  'Iseci i podeli':'Crop & Split',
+  'Iseci i podeli — isecanje slika':'Crop & Split — image cropping',
+  'Iseci jedan deo slike ili je podeli na više manjih slika. Podesi svaki okvir i preuzmi rezultate.':'Crop one part of an image or split it into smaller images. Adjust each frame and download the results.',
+  'Jezik':'Language','Ukloni sliku':'Remove image','Kako radi i privatnost':'How it works and privacy','Zatvori':'Close',
+  'Sve slike obrađuju se na tvom uređaju i ne šalju se na server. Lokalni AI model preuzima se sa ovog sajta pri prvoj upotrebi, a zatim se čuva za sledeću obradu.':'Images are processed on your device and are not sent to a server. The local AI model is downloaded from this site on first use and saved for later.',
+  'Automatska detekcija traži svetle i tamne razmake između delova slike. Ako razmaci nisu jasni, izaberi ručnu mrežu. Promena mreže ponovo postavlja sve granice.':'Automatic detection looks for light and dark gaps between image parts. If gaps are unclear, choose a manual grid. Changing the grid resets all boundaries.',
+  'Dupli klik fokusira deo slike. Kada je cela slika vidljiva, prevuci unutrašnjost dela da pomeriš okvir; kada je uvećana, prevlačenje pomera pogled. Žuti kružići menjaju granice, a zelene i plave strelice poravnavaju ivice sa susednim delovima. U prikazu svih granica moguće je samo poravnanje; klik na deo vraća uređivanje.':'Double-click an image part to focus it. When the whole image is visible, drag inside a part to move its frame; when zoomed in, dragging pans the view. Yellow handles change boundaries, and green and blue arrows align edges with neighboring parts. In the all-boundaries view, only alignment is available; click a part to return to editing.',
+  'Kvadratni izvoz čuva ceo okvir i dodaje bele margine. AI procenjuje detalje i može promeniti teksture ili slova: proveri poređenje pre štampe.':'Square export keeps the whole frame and adds white margins. AI estimates detail and may change textures or letters: check the comparison before printing.',
+  'Kontrole za isecanje slike':'Image cropping controls','Mreža':'Grid','Automatska':'Automatic','Ručna':'Manual','Detektuj':'Detect',
+  'Kolone':'Columns','Redovi':'Rows','Primeni mrežu':'Apply grid','Prikaži deo':'Show part','Prikaži sve granice':'Show all boundaries',
+  'Sakrij ostale granice':'Hide other boundaries','Prethodni':'Previous','Sledeći':'Next','Fokusiraj':'Focus','Ukloni fokus':'Remove focus',
+  'Istakni ivice':'Highlight edges','Isključi isticanje':'Stop highlighting','Deo slike':'Image part','Deo':'Part',
+  'Širina (px)':'Width (px)','Visina (px)':'Height (px)','Odnos stranica':'Aspect ratio','Slobodan':'Free','Prilagođen':'Custom',
+  'Širina odnosa':'Ratio width','Visina odnosa':'Ratio height','Primeni dimenzije':'Apply dimensions','Primeni odnos':'Apply ratio',
+  'Smanji':'Zoom out','Uvećaj':'Zoom in','Obrada slike':'Image processing','Uključeno':'On','Isključeno':'Off',
+  'Način obrade':'Processing mode','AI za slike (ESRGAN)':'AI for images (ESRGAN)','Očuvaj slova (bez AI)':'Preserve letters (no AI)',
+  'Automatski':'Automatic','Uporedi AI rezultat':'Compare AI result','Uporedi rezultat':'Compare result','Prekini':'Cancel',
+  'AI obrađuje sliku prema ciljnoj veličini za štampu. Lokalni modeli rade 2× ili 4×; ako je potrebno više, ostatak se uvećava bez AI. Tekst može biti izmenjen.':'AI processes the image for the selected print size. Local models use 2× or 4×; any further enlargement uses regular interpolation. Text may change.',
+  'Uvećava postojeće piksele bez AI rekonstrukcije i bez prepisivanja teksta. Slova neće dobiti detalje kojih nema na originalu.':'Enlarges existing pixels without AI reconstruction or retyping text. Letters cannot gain details missing from the original.',
+  'AI bira lokalni 2× ili 4× model prema ciljnoj veličini. Kada cilj traži više, ostatak se uvećava bez AI. Tekst može biti izmenjen; proveri pregled.':'AI selects a local 2× or 4× model based on target size. Any further enlargement uses regular interpolation. Text may change; inspect the preview.',
+  'Izvoz slika':'Image export','Ciljna veličina':'Target size','Preuzmi ZIP':'Download ZIP','Preuzmi izabrani deo':'Download selected part',
+  'Izaberi sliku za isecanje ili deljenje.':'Choose an image to crop or split.','Poravnanje i pomoć':'Alignment and help',
+  'Poravnaj sa':'Align with','Ivica':'Edge','Gornja':'Top','Donja':'Bottom','Leva':'Left','Desna':'Right','Poravnaj ivicu':'Align edge',
+  'Dimenzije koriste piksele originala. Primenjen odnos ostaje zaključan pri prevlačenju. Izaberi „Slobodan” i primeni za otključavanje. Pri poravnanju zaključan okvir pomera se u celini.':'Dimensions use original image pixels. An applied aspect ratio stays locked while dragging. Choose “Free” and apply to unlock it. Aligning a locked frame moves it as a whole.',
+  'Izaberi sliku za početak.':'Choose an image to start.','Izaberi sliku':'Choose image','Dodaj sliku za početak':'Add an image to start',
+  'Prevuci sliku ovde ili je izaberi sa uređaja.':'Drag an image here or choose one from your device.',
+  'PNG, JPG, WEBP i drugi podržani formati · Do 50 MB':'PNG, JPG, WEBP and other supported formats · Up to 50 MB',
+  'Zatvori prikaz':'Collapse view','Otvori prikaz':'Expand view','Zatvori poređenje':'Close comparison',
+  'Original izabranog dela':'Original of selected part','AI rezultat izabranog dela':'AI result of selected part',
+  'Bez AI':'No AI','AI rezultat':'AI result','Poređenje originala i AI rezultata':'Compare original and AI result',
+  'Obrađeni deo':'Processed part','Otvori sliku u punoj veličini':'Open full-size image','Preuzmi deo':'Download part',
+  'Pripremam obradu…':'Preparing…',
+  'Mreža —':'Grid —','Deo —':'Part —','Delovi slike ({count})':'Image parts ({count})',
+  'Delova: {count} · {size} · {format} · {mode}':'Parts: {count} · {size} · {format} · {mode}',
+  'Slova bez AI':'Letters without AI','AI uključen':'AI on','AI isključen':'AI off',
+  '{cols} × {rows} · delova: {count}':'{cols} × {rows} · parts: {count}',
+  'Deo {index} / {total}':'Part {index} / {total}','Deo {index}':'Part {index}',
+  'Postavljena mreža {cols} × {rows} (delova: {count}). {hint}':'Grid set to {cols} × {rows} (parts: {count}). {hint}',
+  'Procenjena mreža {cols} × {rows} (delova: {count}). {hint}':'Grid estimated at {cols} × {rows} (parts: {count}). {hint}',
+  'Nema jasnih razmaka; izaberi mrežu ručno ako želiš više delova.':'No clear gaps found; choose a manual grid if you want more parts.',
+  'Izaberi deo slike i podesi njegov okvir.':'Choose an image part and adjust its frame.',
+  'Slika je veća od 50 MB. Izaberi manji fajl.':'The image is larger than 50 MB. Choose a smaller file.',
+  'Slika mora imati najmanje 32 × 32 px.':'The image must be at least 32 × 32 px.',
+  'Slika nije učitana. Izaberi JPEG, PNG ili drugi podržani format.':'The image could not be loaded. Choose JPEG, PNG or another supported format.',
+  'Mreža mora imati 1–12 redova i kolona i dovoljno velike ćelije.':'The grid needs 1–12 rows and columns and cells large enough to use.',
+  'Ova ivica bi prešla suprotnu ivicu dela. Izaberi drugi deo ili ivicu.':'This edge would cross the opposite edge. Choose another part or edge.',
+  'Poravnati okvir bi izašao iz slike.':'The aligned frame would extend beyond the image.',
+  'Ivica dela {index} poravnata sa delom {reference}.':'Edge of part {index} aligned with part {reference}.',
+  'Unesi cele dimenzije od najmanje {min} px, do {width} × {height} px.':'Enter whole-number dimensions of at least {min} px, up to {width} × {height} px.',
+  'Dimenzije moraju pratiti zaključani odnos stranica.':'Dimensions must follow the locked aspect ratio.',
+  'Dimenzije izabranog dela su primenjene.':'Selected part dimensions applied.',
+  'Odnos stranica je otključan.':'Aspect ratio unlocked.',
+  'Unesi pozitivan odnos širine i visine.':'Enter a positive width-to-height ratio.',
+  'Odnos {width}:{height} je zaključan za deo {index}.':'Ratio {width}:{height} locked for part {index}.',
+  'Original: x={x}, y={y}, širina={width}, visina={height} px':'Original: x={x}, y={y}, width={width}, height={height} px',
+  'Prekidam obradu…':'Cancelling…','Obrada je prekinuta.':'Processing cancelled.','Greška: {message}':'Error: {message}',
+  'Izvoz dela slike':'Exporting image part','Prikaz dela slike':'Previewing image part','Pripremam deo {index}…':'Preparing part {index}…',
+  'Deo {index} je spreman.':'Part {index} is ready.','Pripremam poređenje…':'Preparing comparison…',
+  'Poređenje rezultata':'Comparing results','Poređenje AI rezultata':'Comparing AI results',
+  'Poređenje dela {index} je spremno.':'Comparison of part {index} is ready.',
+  'AI korak je prevelik za ovaj uređaj. Izaberi manji deo slike ili režim za očuvanje slova.':'The AI step is too large for this device. Choose a smaller part or preserve-letters mode.',
+  '{label}: učitavam lokalni AI model…':'{label}: loading local AI model…',
+  '{label}: AI obrada {percent}%…':'{label}: AI processing {percent}%…',
+  'Original dela {index}':'Original of part {index}','AI rezultat dela {index}':'AI result of part {index}',
+  'Uvećani deo bez AI':'Enlarged part without AI','Očuvaj slova':'Preserve letters',
+  'Otvori deo u punoj veličini':'Open part at full size','Otvori obrađeni deo u punoj veličini':'Open processed part at full size',
+  'Otvori AI rezultat u punoj veličini':'Open AI result at full size','Otvori original u punoj veličini':'Open original at full size',
+  'Original · {format}':'Original · {format}','AI rezultat {scale}×':'AI result {scale}×','AI {scale}×':'AI {scale}×',
+  '{width} × {height} px · {format} · Bez AI':'{width} × {height} px · {format} · No AI',
+  '{sourceWidth} × {sourceHeight} px → {width} × {height} px · {format} · {mode}{extra}':'{sourceWidth} × {sourceHeight} px → {width} × {height} px · {format} · {mode}{extra}',
+  ' + dodatno uvećanje':' + further enlargement',
+  'Pregled dela {index}':'Preview of part {index}','Prikaži':'Show','Preuzmi':'Download',
+  'Pripremam deo {index} / {total}…':'Preparing part {index} / {total}…',
+  'Završeno: {index} / {total}.':'Done: {index} / {total}.',
+  'Izvoz ZIP arhive':'Exporting ZIP archive','Pravim ZIP…':'Creating ZIP…',
+  'Pripremam delove slike ({count})…':'Preparing image parts ({count})…',
+  'Pakujem ZIP arhivu…':'Packing ZIP archive…','ZIP je spreman. Broj delova: {count}.':'ZIP is ready. Number of parts: {count}.',
+  'AI rezultat je prevelik za ovaj uređaj. Izaberi 2× ili manji okvir scene.':'The AI result is too large for this device. Choose 2× or a smaller frame.',
+  'Ovaj pregledač ne podržava lokalnu AI obradu. Izaberi izvoz bez AI.':'This browser does not support local AI processing. Choose export without AI.',
+  'Lokalni AI nije pokrenut. Proveri učitavanje modela ili izaberi izvoz bez AI.':'Local AI did not start. Check model loading or export without AI.',
+  'AI obrada je već u toku.':'AI processing is already running.','Izvoz slike nije uspeo':'Image export failed',
+  'Neispravan AI režim.':'Invalid AI mode.','Lokalna definicija AI modela nije učitana.':'The local AI model definition did not load.',
+  'Neispravne dimenzije AI obrade.':'Invalid AI processing dimensions.','AI obrada nije uspela.':'AI processing failed.'
+};
+function preferredLanguage(){
+  let saved=null;try{saved=localStorage.getItem('scene-splitter-language')}catch{}
+  if(saved==='sr'||saved==='en')return saved;
+  const languages=navigator.languages?.length?navigator.languages:[navigator.language||'sr'];
+  for(const item of languages){const code=String(item).toLowerCase().split('-')[0];if(code==='sr'||code==='en')return code}
+  return 'en';
+}
+let language=preferredLanguage();
+function tr(key,values={}){
+  const template=language==='en'?(EN[key]||key):key;
+  return template.replace(/\{(\w+)\}/g,(_,name)=>String(values[name]??''));
+}
+const staticText=[],staticAttributes=[];
+function captureStaticTranslations(){
+  if(!document.createTreeWalker||typeof NodeFilter==='undefined')return;
+  const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+  let node;
+  while((node=walker.nextNode())){
+    if(node.parentElement?.closest('script,style,svg'))continue;
+    const key=node.nodeValue.trim();if(EN[key])staticText.push({node,original:node.nodeValue,key});
+  }
+  for(const element of document.querySelectorAll('[aria-label],[alt]')){
+    for(const name of ['aria-label','alt']){const key=element.getAttribute(name);if(EN[key])staticAttributes.push({element,name,key})}
+  }
+}
+function applyStaticTranslations(){
+  for(const item of staticText)item.node.nodeValue=item.original.replace(item.key,tr(item.key));
+  for(const item of staticAttributes)item.element.setAttribute(item.name,tr(item.key));
+  if(document.documentElement)document.documentElement.lang=language==='sr'?'sr-Latn':'en';
+  document.title=tr('Iseci i podeli — isecanje slika');
+  $('#language').value=language;
+}
 const $=s=>document.querySelector(s);
 const file=$('#file'),cv=$('#preview'),ctx=cv.getContext('2d',{willReadFrequently:true});
 const detectBtn=$('#detect'),zipBtn=$('#zip'),status=$('#status'),grid=$('#grid');
@@ -267,29 +385,29 @@ function removeImage(){
   loadId++;file.value='';clearComparison();img=null;crops=[];selected=0;gridCols=gridRows=1;canvasOffset=0;showBoundaries=false;sceneOverlay=false;
   drag=pinch=null;pointers.clear();dirty.clear();aspectLocks.clear();grid.innerHTML='';cv.width=cv.height=1;
   viewer.classList.remove('drag-over');viewer.style.height='';stage.style.width='';gridMode.value='auto';gridColsInput.value=gridRowsInput.value='4';
-  boundariesBtn.textContent='Prikaži sve granice';boundariesBtn.setAttribute('aria-pressed','false');
+  boundariesBtn.textContent=tr('Prikaži sve granice');boundariesBtn.setAttribute('aria-pressed','false');
   [detectBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,$('#overlayScene'),boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls].forEach(x=>x.disabled=true);
   $('#cropInfo').textContent='';$('#aiNotice').hidden=true;
-  syncOverlayButton();resetView();updateUI();status.textContent='Izaberi sliku za početak.';
+  syncOverlayButton();resetView();updateUI();status.textContent=tr('Izaberi sliku za početak.');
 }
 $('#removeImage').onclick=removeImage;
 function loadFile(f){
   if(!f||exporting)return;
-  if(f.size>50*1024*1024){status.textContent='Slika je veća od 50 MB. Izaberi manji fajl.';return}
+  if(f.size>50*1024*1024){status.textContent=tr('Slika je veća od 50 MB. Izaberi manji fajl.');return}
 
   const id=++loadId,u=URL.createObjectURL(f),loaded=new Image();
   loaded.onload=()=>{
     URL.revokeObjectURL(u); if(id!==loadId)return;
-    if(loaded.naturalWidth<32||loaded.naturalHeight<32){status.textContent='Slika mora imati najmanje 32 × 32 px.';return}
+    if(loaded.naturalWidth<32||loaded.naturalHeight<32){status.textContent=tr('Slika mora imati najmanje 32 × 32 px.');return}
     clearComparison();img=loaded;canvasOffset=Math.ceil(Math.max(img.naturalWidth,img.naturalHeight)*.05);
     cv.width=img.naturalWidth+canvasOffset*2;cv.height=img.naturalHeight+canvasOffset*2;
     drag=null;pinch=null;pointers.clear();dirty.clear();showBoundaries=false;sceneOverlay=false;syncOverlayButton();
-    boundariesBtn.textContent='Prikaži sve granice';boundariesBtn.setAttribute('aria-pressed','false');
+    boundariesBtn.textContent=tr('Prikaži sve granice');boundariesBtn.setAttribute('aria-pressed','false');
     $('#aiNotice').hidden=true;resetView();detect({newImage:true});
     [detectBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,$('#overlayScene'),boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls].forEach(x=>x.disabled=false);
     updateUI();
   };
-  loaded.onerror=()=>{URL.revokeObjectURL(u);if(id===loadId)status.textContent='Slika nije učitana. Izaberi JPEG, PNG ili drugi podržani format.'};
+  loaded.onerror=()=>{URL.revokeObjectURL(u);if(id===loadId)status.textContent=tr('Slika nije učitana. Izaberi JPEG, PNG ili drugi podržani format.')};
   loaded.src=u;
 }
 viewer.ondragover=e=>{e.preventDefault();if(!exporting)viewer.classList.add('drag-over')};
@@ -311,7 +429,7 @@ function detect({newImage=false}={}){
     result=SceneGrid.detect(sourceCtx.getImageData(0,0,source.width,source.height).data,source.width,source.height,
       manual?{cols:Number(gridColsInput.value),rows:Number(gridRowsInput.value)}:{});
   }catch(e){
-    if(!newImage){status.textContent=e.message;return}
+    if(!newImage){status.textContent=tr(e.message);return}
     // A pending invalid manual choice must not leave crops from the previous image.
     gridMode.value='auto';manual=false;
     result=SceneGrid.detect(sourceCtx.getImageData(0,0,source.width,source.height).data,source.width,source.height);
@@ -321,8 +439,8 @@ function detect({newImage=false}={}){
     y0:Math.round(c.y0*img.naturalHeight/source.height),y1:Math.round(c.y1*img.naturalHeight/source.height)}));
   gridColsInput.value=gridCols;gridRowsInput.value=gridRows;
   clearComparison();aspectLocks.clear();dirty.clear();selected=0;focusedScene=null;focusSnapshot=null;lastFocusTransfer=null;draw();updateUI();renderGallery();
-  status.textContent=(manual?'Postavljena':'Procenjena')+' mreža '+gridCols+' × '+gridRows+' (delova: '+crops.length+'). '+
-    (!manual&&!result.hasGutters?'Nema jasnih razmaka; izaberi mrežu ručno ako želiš više delova.':'Izaberi deo slike i podesi njegov okvir.');
+  status.textContent=tr(manual?'Postavljena mreža {cols} × {rows} (delova: {count}). {hint}':'Procenjena mreža {cols} × {rows} (delova: {count}). {hint}',{
+    cols:gridCols,rows:gridRows,count:crops.length,hint:tr(!manual&&!result.hasGutters?'Nema jasnih razmaka; izaberi mrežu ručno ako želiš više delova.':'Izaberi deo slike i podesi njegov okvir.')});
 }
 detectBtn.onclick=detect;
 applyGrid.onclick=detect;
@@ -350,27 +468,29 @@ function updateUI(){
   const textMode=processingMode.value==='text',enabled=aiActive&&!textMode;
   $('#aiEnabled').checked=enabled;
   $('#aiEnabled').disabled=exporting||textMode;
-  $('#aiEnabledLabel').textContent=textMode?'Bez AI':enabled?'Uključeno':'Isključeno';
+  $('#aiEnabledLabel').textContent=tr(textMode?'Bez AI':enabled?'Uključeno':'Isključeno');
   aiProfile.disabled=exporting||textMode;
-  $('#previewLabel').textContent=textMode?'Uporedi rezultat':'Uporedi AI rezultat';
-  $('#processingHint').textContent=textMode?'Uvećava postojeće piksele bez AI rekonstrukcije i bez prepisivanja teksta. Slova neće dobiti detalje kojih nema na originalu.':'AI bira lokalni 2× ili 4× model prema ciljnoj veličini. Kada cilj traži više, ostatak se uvećava bez AI. Tekst može biti izmenjen; proveri pregled.';
+  $('#previewLabel').textContent=tr(textMode?'Uporedi rezultat':'Uporedi AI rezultat');
+  $('#processingHint').textContent=tr(textMode?'Uvećava postojeće piksele bez AI rekonstrukcije i bez prepisivanja teksta. Slova neće dobiti detalje kojih nema na originalu.':'AI bira lokalni 2× ili 4× model prema ciljnoj veličini. Kada cilj traži više, ostatak se uvećava bez AI. Tekst može biti izmenjen; proveri pregled.');
   $('#showScene').disabled=exporting||!img;$('#downloadCompared').disabled=exporting||!img;
   $('#chooseFileCanvas').disabled=exporting;
   $('#removeImage').hidden=!img;$('#removeImage').disabled=exporting||!img;
   $('#cancelAI').disabled=!exporting||cancelRequested;
-  $('#galleryTitle').textContent='Delovi slike ('+crops.length+')';
-  $('#exportSummary').textContent=img?'Delova: '+crops.length+' · '+(exportSize.value==='original'?'Original':exportSize.value+' × '+exportSize.value+' px')+' · '+(exportFormat.value==='jpeg'?'JPEG':'PNG')+' · '+(textMode?'Slova bez AI':enabled?'AI uključen':'AI isključen'):'Izaberi sliku za isecanje ili deljenje.';
-  if(!exporting)zipBtn.textContent='Preuzmi ZIP'+(img?' ('+crops.length+')':'');
+  $('#galleryTitle').textContent=tr('Delovi slike ({count})',{count:crops.length});
+  $('#exportSummary').textContent=img?tr('Delova: {count} · {size} · {format} · {mode}',{
+    count:crops.length,size:exportSize.value==='original'?tr('Original'):exportSize.value+' × '+exportSize.value+' px',
+    format:exportFormat.value==='jpeg'?'JPEG':'PNG',mode:tr(textMode?'Slova bez AI':enabled?'AI uključen':'AI isključen')}):tr('Izaberi sliku za isecanje ili deljenje.');
+  if(!exporting)zipBtn.textContent=tr('Preuzmi ZIP')+(img?' ('+crops.length+')':'');
   $('#manualGrid').hidden=gridMode.value!=='manual';
-  $('#gridSummary').textContent=img?gridCols+' × '+gridRows+' · delova: '+crops.length:'Mreža —';
+  $('#gridSummary').textContent=img?tr('{cols} × {rows} · delova: {count}',{cols:gridCols,rows:gridRows,count:crops.length}):tr('Mreža —');
   applyGrid.disabled=exporting||!img;
   [gridMode,gridColsInput,gridRowsInput].forEach(control=>control.disabled=exporting);
   saveSelected.disabled=exporting||!img;previewAIBtn.disabled=exporting||!img||(!enabled&&!textMode);
   $('#overlayScene').disabled=exporting||!img;
-  sceneLabel.textContent=img?'Deo '+(selected+1)+' / '+crops.length:'Deo —';
+  sceneLabel.textContent=img?tr('Deo {index} / {total}',{index:selected+1,total:crops.length}):tr('Deo —');
   prev.disabled=exporting||!img||selected===0; next.disabled=exporting||!img||selected===crops.length-1;
   const reference=Number(alignScene.value);
-  alignScene.innerHTML=crops.map((c,i)=>i===selected?'':`<option value="${i}">Deo ${i+1}</option>`).join('');
+  alignScene.innerHTML=crops.map((c,i)=>i===selected?'':`<option value="${i}">${tr('Deo {index}',{index:i+1})}</option>`).join('');
   const fallback=selected%gridCols<gridCols-1?selected+1:selected%gridCols>0?selected-1:selected+gridCols<crops.length?selected+gridCols:selected-gridCols;
   alignScene.value=crops.length<2?'':String(reference!==selected&&crops[reference]?reference:fallback);
   alignBtn.disabled=exporting||!img||showBoundaries||crops.length<2;
@@ -379,11 +499,11 @@ function updateUI(){
 }
 function syncFocusButton(){
   const focused=focusedScene===selected;
-  $('#focusLabel').textContent=focused?'Ukloni fokus':'Fokusiraj';
+  $('#focusLabel').textContent=tr(focused?'Ukloni fokus':'Fokusiraj');
   focusBtn.setAttribute('aria-pressed',String(focused));
 }
 function syncOverlayButton(){
-  $('#overlayLabel').textContent=sceneOverlay?'Isključi isticanje':'Istakni ivice';
+  $('#overlayLabel').textContent=tr(sceneOverlay?'Isključi isticanje':'Istakni ivice');
   $('#overlayScene').setAttribute('aria-pressed',String(sceneOverlay));
 }
 $('#overlayScene').onclick=()=>{if(!img||exporting)return;sceneOverlay=!sceneOverlay;drag=null;syncOverlayButton();draw()};
@@ -399,7 +519,7 @@ next.onclick=()=>select(selected+1,true);
 focusBtn.onclick=()=>focusedScene===selected?unfocusScene():focusScene();
 function setBoundaries(show){
   showBoundaries=show;drag=null;
-  boundariesBtn.textContent=showBoundaries?'Sakrij ostale granice':'Prikaži sve granice';
+  boundariesBtn.textContent=tr(showBoundaries?'Sakrij ostale granice':'Prikaži sve granice');
   boundariesBtn.setAttribute('aria-pressed',String(showBoundaries));updateUI();draw();
 }
 boundariesBtn.onclick=()=>setBoundaries(!showBoundaries);
@@ -410,22 +530,22 @@ function alignBoundary(edge=alignEdge.value,referenceIndex=Number(alignScene.val
   if(!reference||reference===target||!['x0','x1','y0','y1'].includes(edge))return;
   const value=reference[edge],min=minimumCropSize();
   const valid=edge==='x0'?value<=target.x1-min:edge==='x1'?value>=target.x0+min:edge==='y0'?value<=target.y1-min:value>=target.y0+min;
-  if(!aspectLocks.has(selected)&&!valid){status.textContent='Ova ivica bi prešla suprotnu ivicu dela. Izaberi drugi deo ili ivicu.';return}
+  if(!aspectLocks.has(selected)&&!valid){status.textContent=tr('Ova ivica bi prešla suprotnu ivicu dela. Izaberi drugi deo ili ivicu.');return}
   if(aspectLocks.has(selected)){
     const start=edge[0]+'0',end=edge[0]+'1',delta=value-target[edge];
     const limit=edge[0]==='x'?img.naturalWidth:img.naturalHeight;
-    if(target[start]+delta<0||target[end]+delta>limit){status.textContent='Poravnati okvir bi izašao iz slike.';return}
+    if(target[start]+delta<0||target[end]+delta>limit){status.textContent=tr('Poravnati okvir bi izašao iz slike.');return}
     target[start]+=delta;target[end]+=delta;
   }else target[edge]=value;
   draw();updateCard(selected);
-  status.textContent=`Ivica dela ${selected+1} poravnata sa delom ${referenceIndex+1}.`;
+  status.textContent=tr('Ivica dela {index} poravnata sa delom {reference}.',{index:selected+1,reference:referenceIndex+1});
 }
 alignBtn.onclick=()=>{if(!showBoundaries)alignBoundary()};
 function resizeCrop(width,height){
   if(!img||exporting||showBoundaries)return false;
   const min=minimumCropSize();
   if(!Number.isInteger(width)||!Number.isInteger(height)||width<min||height<min||width>img.naturalWidth||height>img.naturalHeight){
-    status.textContent=`Unesi cele dimenzije od najmanje ${min} px, do ${img.naturalWidth} × ${img.naturalHeight} px.`;return false;
+    status.textContent=tr('Unesi cele dimenzije od najmanje {min} px, do {width} × {height} px.',{min,width:img.naturalWidth,height:img.naturalHeight});return false;
   }
   const c=crops[selected];
   c.x0=Math.min(c.x0,img.naturalWidth-width);c.y0=Math.min(c.y0,img.naturalHeight-height);
@@ -436,21 +556,21 @@ cropHeight.oninput=()=>{const lock=aspectLocks.get(selected);if(lock)cropWidth.v
 dimensionsBtn.onclick=()=>{
   if(!img||exporting||showBoundaries)return;
   const width=Number(cropWidth.value),height=Number(cropHeight.value),lock=aspectLocks.get(selected);
-  if(lock&&Math.abs(height-width/lock.ratio)>.5&&Math.abs(width-height*lock.ratio)>.5){status.textContent='Dimenzije moraju pratiti zaključani odnos stranica.';return}
-  if(resizeCrop(width,height))status.textContent='Dimenzije izabranog dela su primenjene.';
+  if(lock&&Math.abs(height-width/lock.ratio)>.5&&Math.abs(width-height*lock.ratio)>.5){status.textContent=tr('Dimenzije moraju pratiti zaključani odnos stranica.');return}
+  if(resizeCrop(width,height))status.textContent=tr('Dimenzije izabranog dela su primenjene.');
 };
 aspectRatio.onchange=()=>{$('#customAspect').hidden=aspectRatio.value!=='custom'};
 aspectBtn.onclick=()=>{
   if(!img||exporting||showBoundaries)return;
   const preset=aspectRatio.value;
-  if(preset==='free'){aspectLocks.delete(selected);status.textContent='Odnos stranica je otključan.';return}
+  if(preset==='free'){aspectLocks.delete(selected);status.textContent=tr('Odnos stranica je otključan.');return}
   const [width,height]=preset==='custom'?[Number(aspectWidth.value),Number(aspectHeight.value)]:preset.split(':').map(Number);
   const ratio=width/height;
-  if(!Number.isFinite(ratio)||width<=0||height<=0){status.textContent='Unesi pozitivan odnos širine i visine.';return}
+  if(!Number.isFinite(ratio)||width<=0||height<=0){status.textContent=tr('Unesi pozitivan odnos širine i visine.');return}
   const c=crops[selected],w=Math.round(Math.min(c.x1-c.x0,img.naturalWidth,img.naturalHeight*ratio)),h=Math.round(w/ratio);
   if(resizeCrop(w,h)){
     aspectLocks.set(selected,{ratio,width,height,preset});syncAspect();
-    status.textContent=`Odnos ${width}:${height} je zaključan za deo ${selected+1}.`;
+    status.textContent=tr('Odnos {width}:{height} je zaključan za deo {index}.',{width,height,index:selected+1});
   }
 };
 function resizeLocked(p,handle){
@@ -540,7 +660,7 @@ function draw(){
   const c=crops[selected];
   if(c){
     syncDimensions();
-    $('#cropInfo').textContent=`Original: x=${c.x0}, y=${c.y0}, širina=${c.x1-c.x0}, visina=${c.y1-c.y0} px`;
+    $('#cropInfo').textContent=tr('Original: x={x}, y={y}, širina={width}, visina={height} px',{x:c.x0,y:c.y0,width:c.x1-c.x0,height:c.y1-c.y0});
   }
   ctx.restore();
 }
@@ -680,14 +800,14 @@ viewer.onpointerup=e=>{
 window.addEventListener('resize',()=>{if(img)resetView();if(comparisonSize)sizeComparison()});
 
 function setProgress(message,percent=null){
-  $('#loaderMessage').textContent=message;
+  $('#loaderMessage').textContent=tr(message);
   if(Number.isFinite(percent)){
     const value=Math.max(0,Math.min(100,Math.round(percent)));
     loaderProgress.value=value;$('#loaderPercent').textContent=value+'%';
   }else{loaderProgress.removeAttribute('value');$('#loaderPercent').textContent=''}
 }
 function setBusy(busy,title='Obrada slike'){
-  if(busy){busyReturnFocus=document.activeElement;cancelRequested=false;$('#loaderTitle').textContent=title;setProgress('Pripremam obradu…');}
+  if(busy){busyReturnFocus=document.activeElement;cancelRequested=false;$('#loaderTitle').textContent=tr(title);setProgress('Pripremam obradu…');}
   exporting=busy;cancelExport.disabled=!busy;drag=null;pinch=null;pointers.clear();
   [file,gridMode,gridColsInput,gridRowsInput,applyGrid,detectBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,$('#overlayScene'),boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls,exportSize,aiProfile,processingMode,exportFormat,saveSelected,previewAIBtn,...grid.querySelectorAll('button')].forEach(x=>x.disabled=busy);
   updateUI();
@@ -753,15 +873,15 @@ function aiPlan(c){
 async function enhancedCrop(c,index,total=1){
   ensureNotCancelled();
   let plan;
-  try{plan=aiPlan(c)}catch(error){$('#aiNotice').textContent=error.message;$('#aiNotice').hidden=false;throw error}
+  try{plan=aiPlan(c)}catch(error){$('#aiNotice').textContent=tr(error.message);$('#aiNotice').hidden=false;throw error}
   $('#aiNotice').hidden=true;
   if(!plan.scale)return cropCanvas(c);
   const original=cropCanvas(c);
   try{
     const result=await SceneAI.upscale(original,plan.options,progress=>{
-      const label=total>1?`Deo ${index+1} / ${total}`:`Deo ${index+1}`;
+      const label=total>1?tr('Deo {index} / {total}',{index:index+1,total}):tr('Deo {index}',{index:index+1});
       const part=progress.stage==='loading'?0:Math.max(0,Math.min(1,progress.value));
-      setProgress(progress.stage==='loading'?`${label}: učitavam lokalni AI model…`:`${label}: AI obrada ${Math.round(part*100)}%…`,total>1?(index+part)/total*100:progress.stage==='loading'?null:part*100);
+      setProgress(progress.stage==='loading'?tr('{label}: učitavam lokalni AI model…',{label}):tr('{label}: AI obrada {percent}%…',{label,percent:Math.round(part*100)}),total>1?(index+part)/total*100:progress.stage==='loading'?null:part*100);
     });
     ensureNotCancelled();
     const canvas=document.createElement('canvas');canvas.width=result.width;canvas.height=result.height;
@@ -772,12 +892,12 @@ async function enhancedCrop(c,index,total=1){
 async function prepareExport(c,index,total=1){return fitExport(await enhancedCrop(c,index,total))}
 async function saveScene(index){
   try{
-    setBusy(true,'Izvoz dela slike');setProgress('Pripremam deo '+(index+1)+'…');
+    setBusy(true,'Izvoz dela slike');setProgress(tr('Pripremam deo {index}…',{index:index+1}));
     await new Promise(requestAnimationFrame);ensureNotCancelled();
     const blob=await imageBlob(await prepareExport(crops[index],index));ensureNotCancelled();
-    setProgress('Deo '+(index+1)+' je spreman.',100);
-    download(blob,sceneFilename(index));status.textContent='Deo '+(index+1)+' je spreman.';
-  }catch(error){status.textContent=error.name==='AbortError'?'Obrada je prekinuta.':'Greška: '+error.message}
+    setProgress(tr('Deo {index} je spreman.',{index:index+1}),100);
+    download(blob,sceneFilename(index));status.textContent=tr('Deo {index} je spreman.',{index:index+1});
+  }catch(error){status.textContent=error.name==='AbortError'?tr('Obrada je prekinuta.'):tr('Greška: {message}',{message:tr(error.message)})}
   finally{setBusy(false)}
 }
 saveSelected.onclick=()=>saveScene(selected);
@@ -800,10 +920,10 @@ function clearComparison(){
 function setComparePosition(value){
   $('#compareSlider').value=value;$('#compareFrame').style.setProperty('--split',value+'%');
   comparisonActive=comparisonURLs[1]&&value<100?1:0;
-  $('#openFullImage').textContent=!comparisonURLs[1]?'Otvori deo u punoj veličini':comparisonActive?(processingMode.value==='text'?'Otvori obrađeni deo u punoj veličini':'Otvori AI rezultat u punoj veličini'):'Otvori original u punoj veličini';
+  $('#openFullImage').textContent=tr(!comparisonURLs[1]?'Otvori deo u punoj veličini':comparisonActive?(processingMode.value==='text'?'Otvori obrađeni deo u punoj veličini':'Otvori AI rezultat u punoj veličini'):'Otvori original u punoj veličini');
 }
 $('#compareSlider').oninput=()=>{
-  if(comparisonURLs[1]){$('#comparisonImage').src=comparisonURLs[1];$('#comparisonImage').alt=processingMode.value==='text'?'Uvećani deo bez AI':'AI rezultat izabranog dela'}
+  if(comparisonURLs[1]){$('#comparisonImage').src=comparisonURLs[1];$('#comparisonImage').alt=tr(processingMode.value==='text'?'Uvećani deo bez AI':'AI rezultat izabranog dela')}
   setComparePosition(Number($('#compareSlider').value));
 };
 function sizeComparison(){
@@ -821,18 +941,18 @@ function sizeComparison(){
 function openComparison(index,info,enhanced=true,width=1,height=1,blob=null){
   const image=$('#comparisonImage');image.src=comparisonURLs[enhanced?1:0];
   comparisonActive=enhanced?1:0;
-  image.alt=enhanced?(processingMode.value==='text'?'Uvećani deo bez AI':'AI rezultat dela '+(index+1)):'Original dela '+(index+1);
+  image.alt=enhanced?(processingMode.value==='text'?tr('Uvećani deo bez AI'):tr('AI rezultat dela {index}',{index:index+1})):tr('Original dela {index}',{index:index+1});
   $('#comparisonOriginal').src=comparisonURLs[0];
-  $('#comparisonTitle').textContent='Deo '+(index+1);
+  $('#comparisonTitle').textContent=tr('Deo {index}',{index:index+1});
   const format=exportFormat.value==='jpeg'?'JPEG':'PNG';
-  $('#originalTag').textContent=enhanced?'Original · '+format:'Original';
+  $('#originalTag').textContent=enhanced?tr('Original · {format}',{format}):tr('Original');
   const plan=enhanced?aiPlan(crops[index]):{scale:0};
-  $('#enhancedTag').textContent=(processingMode.value==='text'?'Očuvaj slova':plan.scale?'AI rezultat '+plan.scale+'×':'Bez AI')+' · '+format;
-  $('#showEnhanced').textContent=processingMode.value==='text'?'Očuvaj slova':plan.scale?'AI rezultat':'Bez AI';
+  $('#enhancedTag').textContent=(processingMode.value==='text'?tr('Očuvaj slova'):plan.scale?tr('AI rezultat {scale}×',{scale:plan.scale}):tr('Bez AI'))+' · '+format;
+  $('#showEnhanced').textContent=tr(processingMode.value==='text'?'Očuvaj slova':plan.scale?'AI rezultat':'Bez AI');
   ['#compareTags','#compareDivider','#compareSlider','#compareModes'].forEach(id=>$(id).hidden=!enhanced);
   setComparePosition(enhanced?50:100);
-  $('#showOriginal').onclick=()=>{comparisonActive=0;image.src=comparisonURLs[0];image.alt='Original dela '+(index+1);setComparePosition(100)};
-  $('#showEnhanced').onclick=()=>{comparisonActive=1;image.src=comparisonURLs[1];image.alt=processingMode.value==='text'?'Uvećani deo bez AI':'AI rezultat dela '+(index+1);setComparePosition(0)};
+  $('#showOriginal').onclick=()=>{comparisonActive=0;image.src=comparisonURLs[0];image.alt=tr('Original dela {index}',{index:index+1});setComparePosition(100)};
+  $('#showEnhanced').onclick=()=>{comparisonActive=1;image.src=comparisonURLs[1];image.alt=processingMode.value==='text'?tr('Uvećani deo bez AI'):tr('AI rezultat dela {index}',{index:index+1});setComparePosition(0)};
   comparisonDownload=blob?{blob,name:sceneFilename(index)}:null;
   $('#downloadCompared').onclick=()=>comparisonDownload?download(comparisonDownload.blob,comparisonDownload.name):saveScene(index);
   $('#aiResultInfo').textContent=info;comparisonSize={width,height};$('#comparisonBackdrop').hidden=false;$('#aiComparison').hidden=false;document.body.style.overflow='hidden';sizeComparison();$('#aiComparison').focus?.();
@@ -841,13 +961,13 @@ $('#showScene').onclick=async()=>{
   const index=selected,c={...crops[index]};
   let ready=null;
   try{
-    setBusy(true,'Prikaz dela slike');clearComparison();setProgress('Pripremam deo '+(index+1)+'…');
+    setBusy(true,'Prikaz dela slike');clearComparison();setProgress(tr('Pripremam deo {index}…',{index:index+1}));
     const preview=previewCanvas(c),width=preview.width,height=preview.height;
     const blob=await imageBlob(preview);comparisonBlobs=[blob];comparisonURLs.push(URL.createObjectURL(blob));ensureNotCancelled();
     ready={width,height};
-  }catch(error){clearComparison();status.textContent=error.name==='AbortError'?'Obrada je prekinuta.':'Greška: '+error.message}
+  }catch(error){clearComparison();status.textContent=error.name==='AbortError'?tr('Obrada je prekinuta.'):tr('Greška: {message}',{message:tr(error.message)})}
   finally{setBusy(false)}
-  if(ready)openComparison(index,ready.width+' × '+ready.height+' px · '+(exportFormat.value==='jpeg'?'JPEG':'PNG')+' · Bez AI',false,ready.width,ready.height);
+  if(ready)openComparison(index,tr('{width} × {height} px · {format} · Bez AI',{width:ready.width,height:ready.height,format:exportFormat.value==='jpeg'?'JPEG':'PNG'}),false,ready.width,ready.height);
 };
 
 $('#closeComparison').onclick=clearComparison;
@@ -863,16 +983,18 @@ previewAIBtn.onclick=async()=>{
     const plan=aiPlan(c);
     enhanced=await prepareExport(c,index);ensureNotCancelled();
     const width=enhanced.width,height=enhanced.height,format=exportFormat.value==='jpeg'?'JPEG':'PNG';
-    const info=`${c.x1-c.x0} × ${c.y1-c.y0} px → ${width} × ${height} px · ${format} · ${processingMode.value==='text'?'Bez AI':plan.scale?`AI ${plan.scale}×`:'Bez AI'}`+
-      (plan.interpolated?' + dodatno uvećanje':'');
+    const info=tr('{sourceWidth} × {sourceHeight} px → {width} × {height} px · {format} · {mode}{extra}',{
+      sourceWidth:c.x1-c.x0,sourceHeight:c.y1-c.y0,width,height,format,
+      mode:processingMode.value==='text'?tr('Bez AI'):plan.scale?tr('AI {scale}×',{scale:plan.scale}):tr('Bez AI'),
+      extra:plan.interpolated?tr(' + dodatno uvećanje'):''});
     setProgress('Pripremam poređenje…',100);
     const enhancedBlob=await imageBlob(enhanced);enhanced=null;ensureNotCancelled();
     original=fitExport(cropCanvas(c),width,height);
     const originalBlob=await imageBlob(original);original=null;ensureNotCancelled();
     comparisonBlobs=[originalBlob,enhancedBlob];comparisonURLs.push(URL.createObjectURL(originalBlob),URL.createObjectURL(enhancedBlob));
     ready={index,info,width,height,blob:enhancedBlob};
-    status.textContent='Poređenje dela '+(index+1)+' je spremno.';
-  }catch(error){clearComparison();status.textContent=error.name==='AbortError'?'Obrada je prekinuta.':'Greška: '+error.message}
+    status.textContent=tr('Poređenje dela {index} je spremno.',{index:index+1});
+  }catch(error){clearComparison();status.textContent=error.name==='AbortError'?tr('Obrada je prekinuta.'):tr('Greška: {message}',{message:tr(error.message)})}
   finally{if(original)original.width=original.height=1;if(enhanced)enhanced.width=enhanced.height=1;setBusy(false)}
   if(ready&&comparisonURLs.length===2)openComparison(ready.index,ready.info,true,ready.width,ready.height,ready.blob);
 };
@@ -895,11 +1017,11 @@ function renderGallery(){
   crops.forEach((c,i)=>{
     const card=document.createElement('div');
     card.className='card'+(i===selected?' selected':'');card.dataset.i=i;
-    const im=document.createElement('img');im.alt='Pregled dela '+(i+1);im.onclick=()=>{if(!exporting)select(i,true)};
+    const im=document.createElement('img');im.alt=tr('Pregled dela {index}',{index:i+1});im.onclick=()=>{if(!exporting)select(i,true)};
     const number=document.createElement('span');number.className='card-number';number.textContent=i+1;
-    const label=document.createElement('div');label.className='card-label';label.textContent='Deo '+(i+1);
-    const b=document.createElement('button');b.textContent='Prikaži';b.onclick=()=>select(i,true);
-    const save=document.createElement('button');save.textContent='Preuzmi';
+    const label=document.createElement('div');label.className='card-label';label.textContent=tr('Deo {index}',{index:i+1});
+    const b=document.createElement('button');b.textContent=tr('Prikaži');b.onclick=()=>select(i,true);
+    const save=document.createElement('button');save.textContent=tr('Preuzmi');
     save.className='card-save';save.onclick=()=>saveScene(i);
     card.append(im,number,label,b,save);grid.append(card);updateCard(i);
   });
@@ -924,23 +1046,35 @@ function zipBlob(files){
 async function makeFiles(){
   const fs=[];
   for(let i=0;i<crops.length;i++){
-    setProgress('Pripremam deo '+(i+1)+' / '+crops.length+'…',i/crops.length*100);
+    setProgress(tr('Pripremam deo {index} / {total}…',{index:i+1,total:crops.length}),i/crops.length*100);
     await new Promise(requestAnimationFrame);
     ensureNotCancelled();
     const blob=await imageBlob(await prepareExport(crops[i],i,crops.length));ensureNotCancelled();
     fs.push({name:sceneFilename(i),data:new Uint8Array(await blob.arrayBuffer())});
-    setProgress('Završeno: '+(i+1)+' / '+crops.length+'.',(i+1)/crops.length*100);
+    setProgress(tr('Završeno: {index} / {total}.',{index:i+1,total:crops.length}),(i+1)/crops.length*100);
   }
   return fs;
 }
 zipBtn.onclick=async()=>{
   try{
-    setBusy(true,'Izvoz ZIP arhive');zipBtn.textContent='Pravim ZIP…';setProgress('Pripremam delove slike ('+crops.length+')…',0);
+    setBusy(true,'Izvoz ZIP arhive');zipBtn.textContent=tr('Pravim ZIP…');setProgress(tr('Pripremam delove slike ({count})…',{count:crops.length}),0);
     const files=await makeFiles();ensureNotCancelled();setProgress('Pakujem ZIP arhivu…',100);download(zipBlob(files),'delovi-slike.zip');
-    status.textContent='ZIP je spreman. Broj delova: '+crops.length+'.';
-  }catch(e){status.textContent=e.name==='AbortError'?'Obrada je prekinuta.':'Greška: '+e.message}
+    status.textContent=tr('ZIP je spreman. Broj delova: {count}.',{count:crops.length});
+  }catch(e){status.textContent=e.name==='AbortError'?tr('Obrada je prekinuta.'):tr('Greška: {message}',{message:tr(e.message)})}
   finally{setBusy(false)}
 };
+function setLanguage(next,persist=true){
+  if(next!=='sr'&&next!=='en')return;
+  language=next;
+  if(persist)try{localStorage.setItem('scene-splitter-language',language)}catch{}
+  applyStaticTranslations();updateUI();syncOverlayButton();
+  boundariesBtn.textContent=tr(showBoundaries?'Sakrij ostale granice':'Prikaži sve granice');
+  if(img){draw();renderGallery()}
+  $('#aiNotice').hidden=true;
+  status.textContent=tr(img?'Izaberi deo slike i podesi njegov okvir.':'Izaberi sliku za početak.');
+}
+$('#language').onchange=()=>setLanguage($('#language').value);
+captureStaticTranslations();setLanguage(language,false);
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
 </script>
 </body></html>
