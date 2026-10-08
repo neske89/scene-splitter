@@ -119,12 +119,12 @@ console.log('edge priority, touch selection, independent drag, interrupted gestu
   fs.writeFileSync('/tmp/scene-splitter-verify.zip',Buffer.from(await archive.arrayBuffer()));
   const handlers={},deleted=[],stored=[];
   const cache={addAll:async assets=>assert(assets.includes('./index.html')&&assets.includes('./grid-detection.js')),put:async(key,response)=>stored.push(key)};
-  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io',href:'https://neske89.github.io/scene-splitter/sw.js'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
+  const swContext=vm.createContext({self:{location:{origin:'https://neske89.github.io',href:'https://neske89.github.io/scene-splitter/sw.js'},clients:{claim:async()=>{}},skipWaiting:async()=>{},addEventListener:(type,handler)=>handlers[type]=handler},URL,caches:{open:async()=>cache,keys:async()=>['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10','scene-splitter-v11','unrelated-cache'],delete:async key=>deleted.push(key),match:async()=>({offline:true})},fetch:async()=>({ok:true,clone:()=>({})})});
   vm.runInContext(fs.readFileSync(__dirname+'/sw.js','utf8'),swContext);
   let pending;
   handlers.install({waitUntil:p=>pending=p});await pending;
   handlers.activate({waitUntil:p=>pending=p});await pending;
-  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9']);
+  assert.deepStrictEqual(deleted,['scene-splitter-v2','scene-splitter-v3','scene-splitter-v4','scene-splitter-v5','scene-splitter-v6','scene-splitter-v7','scene-splitter-v8','scene-splitter-v9','scene-splitter-v10']);
   let response,background;
   handlers.fetch({request:{method:'GET',url:'https://neske89.github.io/scene-splitter/',mode:'navigate'},respondWith:p=>response=p,waitUntil:p=>background=p});
   assert((await response).ok);await background;assert.deepStrictEqual(stored,['./index.html']);
@@ -159,9 +159,27 @@ count=strokeCalls.length;
 vm.runInContext('draw()',context);
 assert.strictEqual(strokeCalls.length-count,16);
 assert.strictEqual(vm.runInContext('showBoundaries',context),true);
-// Double click selects the scene under the pointer and centers it.
+// Double click focuses another scene; repeating it or pressing the button restores the full view.
 viewer.ondblclick({clientX:310,clientY:310});
 assert.strictEqual(vm.runInContext('selected',context),15);
+assert.strictEqual(vm.runInContext('focusedScene',context),15);
+assert.strictEqual(elements.get('#focusLabel').textContent,'Ukloni fokus');
+viewer.ondblclick({clientX:310,clientY:310});
+assert.strictEqual(vm.runInContext('focusedScene',context),null);
+assert.strictEqual(vm.runInContext('zoom',context),1);
+assert.strictEqual(vm.runInContext('panX',context),0);
+assert.strictEqual(vm.runInContext('panY',context),0);
+assert.strictEqual(elements.get('#focusLabel').textContent,'Fokusiraj');
+elements.get('#focus').onclick();
+assert.strictEqual(vm.runInContext('focusedScene',context),15);
+elements.get('#focus').onclick();
+assert.strictEqual(vm.runInContext('focusedScene',context),null);
+viewer.ondblclick({clientX:50,clientY:50});
+assert.strictEqual(vm.runInContext('selected',context),0);
+assert.strictEqual(vm.runInContext('focusedScene',context),0);
+viewer.ondblclick({clientX:150,clientY:50});
+assert.strictEqual(vm.runInContext('selected',context),1);
+assert.strictEqual(vm.runInContext('focusedScene',context),1);
 // Every edge copies the matching coordinate from the reference, independently.
 for(const edge of ['x0','x1','y0','y1']){
   vm.runInContext('selected=0;crops[0]={x0:10,y0:10,x1:190,y1:190};crops[1]={x0:20,y0:30,x1:180,y1:170}',context);

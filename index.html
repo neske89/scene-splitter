@@ -169,7 +169,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
   <div id="manualGrid" class="controls manual-grid" hidden><label for="gridCols">Kolone</label><input id="gridCols" type="number" min="1" max="12" step="1" value="4"><label for="gridRows">Redovi</label><input id="gridRows" type="number" min="1" max="12" step="1" value="4"><button id="applyGrid" disabled>Primeni mrežu</button></div>
  </div>
  <div class="scene-actions"><button id="showScene" class="primary" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-eye"/></svg>Prikaži scenu</button><button id="boundaries" class="secondary" disabled aria-pressed="false">Prikaži sve granice</button></div>
- <div class="scene-nav"><button id="prev" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-arrow-left"/></svg>Prethodna</button><button id="focus" class="primary" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-focus"/></svg>Fokusiraj</button><button id="next" disabled>Sledeća<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-arrow-right"/></svg></button></div>
+ <div class="scene-nav"><button id="prev" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-arrow-left"/></svg>Prethodna</button><button id="focus" class="primary" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-focus"/></svg><span id="focusLabel">Fokusiraj</span></button><button id="next" disabled>Sledeća<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-arrow-right"/></svg></button></div>
  <div class="selection-info"><span id="sceneLabel" class="badge">Scena —</span><button id="split" class="soft" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-grid"/></svg>Galerija scena</button></div>
  <div>
   <div class="geometry">
@@ -242,7 +242,7 @@ const aspectLocks=new Map();
 const gridMode=$('#gridMode'),gridColsInput=$('#gridCols'),gridRowsInput=$('#gridRows'),applyGrid=$('#applyGrid');
 let gridCols=1,gridRows=1;
 let canvasOffset=0,showBoundaries=false;
-let img=null,crops=[],selected=0,zoom=1,panX=0,panY=0,drag=null,pointers=new Map(),pinch=null,dirty=new Set(),loadId=0,exporting=false;
+let img=null,crops=[],selected=0,focusedScene=null,zoom=1,panX=0,panY=0,drag=null,pointers=new Map(),pinch=null,dirty=new Set(),loadId=0,exporting=false;
 
 file.onchange=()=>loadFile(file.files[0]);
 $('#chooseFile').onclick=()=>file.click();
@@ -294,7 +294,7 @@ function detect({newImage=false}={}){
   crops=result.crops.map(c=>({x0:Math.round(c.x0*img.naturalWidth/source.width),x1:Math.round(c.x1*img.naturalWidth/source.width),
     y0:Math.round(c.y0*img.naturalHeight/source.height),y1:Math.round(c.y1*img.naturalHeight/source.height)}));
   gridColsInput.value=gridCols;gridRowsInput.value=gridRows;
-  clearComparison();aspectLocks.clear();dirty.clear();selected=0;grid.innerHTML='';$('#gallery').hidden=true;draw();updateUI();
+  clearComparison();aspectLocks.clear();dirty.clear();selected=0;focusedScene=null;grid.innerHTML='';$('#gallery').hidden=true;draw();updateUI();
   status.textContent=(manual?'Postavljena':'Procenjena')+' mreža '+gridCols+' × '+gridRows+' ('+crops.length+' scena). '+
     (!manual&&!result.hasGutters?'Nema jasnih razmaka; izaberi mrežu ručno ako slika sadrži više scena.':'Izaberi scenu i koriguj njen okvir.');
 }
@@ -319,6 +319,7 @@ function syncAspect(){
 }
 function updateUI(){
   syncDimensions();syncAspect();
+  syncFocusButton();
   $('#emptyCanvas').hidden=!!img;
   const enabled=Number(aiScale.value)>0;
   $('#aiEnabled').checked=enabled;$('#aiEnabled').disabled=exporting;
@@ -345,14 +346,21 @@ function updateUI(){
   [...geometryControls,alignScene,alignEdge].forEach(control=>control.disabled=exporting||!img||showBoundaries);
   if(crops.length<2){alignScene.disabled=true;alignEdge.disabled=true}
 }
+function syncFocusButton(){
+  const focused=focusedScene===selected;
+  $('#focusLabel').textContent=focused?'Ukloni fokus':'Fokusiraj';
+  focusBtn.setAttribute('aria-pressed',String(focused));
+}
 function select(i,focus=false,leaveOverview=true){
   if(leaveOverview&&showBoundaries)setBoundaries(false);
-  selected=Math.max(0,Math.min(crops.length-1,i)); draw(); updateUI(); markCards();
+  const next=Math.max(0,Math.min(crops.length-1,i));
+  if(next!==selected)focusedScene=null;
+  selected=next; draw(); updateUI(); markCards();
   if(focus)focusScene();
 }
 prev.onclick=()=>select(selected-1,true);
 next.onclick=()=>select(selected+1,true);
-focusBtn.onclick=focusScene;
+focusBtn.onclick=()=>focusedScene===selected?resetView():focusScene();
 function setBoundaries(show){
   showBoundaries=show;drag=null;
   boundariesBtn.textContent=showBoundaries?'Sakrij ostale granice':'Prikaži sve granice';
@@ -432,7 +440,8 @@ function resizeLocked(p,handle){
 viewer.ondblclick=e=>{
   if(!img||exporting)return;
   const p=pt(e);if(alignmentHit(p))return;
-  const i=sceneAt(p);if(i>=0)select(i,true);
+  const i=sceneAt(p);
+  if(i>=0){if(i===selected&&focusedScene===i)resetView();else select(i,true)}
 };
 
 function visibleScenes(){return [...crops.keys()].filter(i=>i!==selected&&showBoundaries).concat(crops[selected]?selected:[])}
@@ -498,6 +507,7 @@ function draw(){
 }
 function applyTransform(){stage.style.transform=`translate(${panX}px,${panY}px) scale(${zoom})`;draw()}
 function setZoom(v,ax=viewer.clientWidth/2,ay=viewer.clientHeight/2){
+  focusedScene=null;syncFocusButton();
   const old=zoom;zoom=Math.max(1,Math.min(6,v));
   if(ax!==null&&old!==zoom){panX=ax-(ax-panX)*(zoom/old);panY=ay-(ay-panY)*(zoom/old)}
   if(zoom===1)panX=panY=0;
@@ -520,6 +530,7 @@ function focusScene(){
   zoom=Math.min(6,Math.max(1,Math.min((r.width-2*margin)/sw,(r.height-2*margin)/sh)));
   const cx=(canvasOffset+(c.x0+c.x1)/2)/cv.width*baseW,cy=(canvasOffset+(c.y0+c.y1)/2)/cv.height*baseH;
   panX=r.width/2-cx*zoom;panY=r.height/2-cy*zoom;
+  focusedScene=selected;syncFocusButton();
   zoomEl.value=Math.round(zoom*100);resetZoom.textContent=Math.round(zoom*100)+'%';applyTransform();
 }
 function pt(e){
@@ -565,6 +576,7 @@ viewer.onpointermove=e=>{
   if(pointers.size===2&&pinch){
     const a=[...pointers.values()],d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
     if(!pinch.d)return;
+    focusedScene=null;syncFocusButton();
     zoom=Math.max(1,Math.min(6,pinch.z*d/pinch.d));
     const r=viewer.getBoundingClientRect(),cx=(a[0].x+a[1].x)/2-r.left,cy=(a[0].y+a[1].y)/2-r.top;
     panX=cx-(pinch.cx-pinch.px)*zoom/pinch.z;panY=cy-(pinch.cy-pinch.py)*zoom/pinch.z;
@@ -573,7 +585,7 @@ viewer.onpointermove=e=>{
   if(!drag)return;
   if(drag.type==='pan'||drag.type==='scene'){
     if(drag.type==='scene'&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8)drag.moved=true;
-    if(zoom>1){panX=drag.px+e.clientX-drag.x;panY=drag.py+e.clientY-drag.y;applyTransform()}
+    if(zoom>1){focusedScene=null;syncFocusButton();panX=drag.px+e.clientX-drag.x;panY=drag.py+e.clientY-drag.y;applyTransform()}
     return;
   }
   if(drag.type==='align'){if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8)drag.moved=true;return}
