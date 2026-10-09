@@ -118,7 +118,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 .card.selected .card-label{color:#0064ff;font-weight:600}
 .card button{width:100%;font-size:11px;min-height:32px;padding:7px;border-color:transparent;background:#edf1f7;gap:5px}
 .card .card-save{margin-top:4px;background:transparent;color:#65758f;min-height:24px;padding:3px}
-.comparison-backdrop{position:fixed;z-index:49;inset:0;background:#0e1d33bd}
+.popup-backdrop{position:fixed;z-index:49;inset:0;background:#0e1d33bd}
 .comparison{position:fixed;z-index:50;top:50%;left:50%;transform:translate(-50%,-50%);min-width:min(320px,calc(100vw - 16px));max-width:calc(100vw - 16px);max-height:calc(100dvh - 16px);overflow:auto;background:#fff;border:1px solid #dfe5ef;border-radius:16px;padding:16px;box-shadow:0 10px 30px #253f6a26,0 2px 5px #253f6a12}
 .comparison-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:15px}
 .comparison-heading button{border:0;background:transparent;padding:4px;min-height:26px;width:26px}
@@ -142,7 +142,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 .loading-card progress{display:block;width:100%;height:12px;accent-color:#0879ff;margin-bottom:8px}
 .loading-card output{display:block;min-height:20px;color:#43516b;font-size:13px;font-weight:600}
 .loading-card button{margin-top:16px;min-width:130px}
-.privacy-panel{position:fixed;z-index:30;right:34px;top:80px;width:min(430px,calc(100vw - 32px));background:#fff;border:1px solid #dfe5ef;border-radius:15px;padding:20px;box-shadow:0 10px 30px #253f6a26}
+.privacy-panel{position:fixed;z-index:50;top:50%;left:50%;transform:translate(-50%,-50%);width:min(430px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;background:#fff;border:1px solid #dfe5ef;border-radius:15px;padding:20px;box-shadow:0 10px 30px #253f6a26}
 .privacy-panel p{color:#61718c;font-size:13px;line-height:1.6}
 @media(min-width:1000px){
  .workspace{grid-template-columns:minmax(0,1fr) minmax(420px,.61fr);gap:20px}
@@ -151,7 +151,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
  .viewer{min-height:0}
 }
 @media(max-width:1100px){body{padding:20px}.inline-field{gap:7px}}
-@media(max-width:999px){.canvas-panel{grid-row:1}.sidebar{grid-row:2}.viewer{min-height:250px}.app-header{gap:14px}.app-header .soft{font-size:12px}.app-header .soft span{max-width:100px}.sidebar{min-height:0}.privacy-panel{right:16px}}
+@media(max-width:999px){.canvas-panel{grid-row:1}.sidebar{grid-row:2}.viewer{min-height:250px}.app-header{gap:14px}.app-header .soft{font-size:12px}.app-header .soft span{max-width:100px}.sidebar{min-height:0}}
 @media(max-width:850px){.app-header{flex-wrap:wrap}.app-header>div:first-child{flex-basis:100%}.header-actions{margin-left:auto}}
 @media(max-width:550px){body{padding:16px 12px}h1{font-size:26px}.subtitle{font-size:13px}.app-header{margin-bottom:18px}.app-header .soft,.app-header .remove-image{min-width:38px;padding:9px}.app-header .soft span,.app-header .remove-image span{display:none}.scene-nav{gap:6px}.scene-nav button{font-size:11px;gap:5px}.geometry{gap:8px}.zoomrow{gap:8px;grid-template-columns:auto 35px minmax(0,1fr) 35px 62px}.inline-field{flex-direction:column;align-items:stretch;gap:6px}.export-options{grid-template-columns:minmax(0,1fr) 85px}.gallery{padding:12px}.gallery-title{font-size:16px}.grid{grid-auto-columns:92px}.card img{height:92px}.grid-controls{gap:8px}.grid-controls button{font-size:12px;padding:9px}.comparison{padding:16px}}
 </style>
@@ -163,8 +163,9 @@ canvas{display:block;width:100%;height:auto;background:#222426}
  <div><h1>Iseci i podeli</h1><p class="subtitle">Iseci jedan deo slike ili je podeli na više manjih slika. Podesi svaki okvir i preuzmi rezultate.</p></div>
  <div class="header-actions"><select id="language" class="language-select" aria-label="Jezik"><option value="sr">Srpski</option><option value="en">English</option><option value="de">Deutsch</option><option value="es">Español</option></select><button id="removeImage" class="remove-image" hidden disabled aria-label="Ukloni sliku"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg><span>Ukloni sliku</span></button><button id="privacyToggle" class="soft" aria-expanded="false" aria-controls="privacyPanel"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg><span>Kako radi i privatnost</span></button></div>
 </header>
-<section id="privacyPanel" class="privacy-panel" hidden aria-label="Kako radi i privatnost">
- <div class="panel-heading"><h2>Kako radi i privatnost</h2><button id="closePrivacy" aria-label="Zatvori"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg></button></div>
+<div id="privacyBackdrop" class="popup-backdrop" hidden aria-hidden="true"></div>
+<section id="privacyPanel" class="privacy-panel" hidden role="dialog" aria-modal="true" aria-labelledby="privacyTitle" tabindex="-1">
+ <div class="panel-heading"><h2 id="privacyTitle">Kako radi i privatnost</h2><button id="closePrivacy" aria-label="Zatvori"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg></button></div>
  <p>Sve slike obrađuju se na tvom uređaju i ne šalju se na server. Lokalni AI model preuzima se sa ovog sajta pri prvoj upotrebi, a zatim se čuva za sledeću obradu.</p>
  <p>Automatska detekcija traži svetle i tamne razmake između delova slike. Ako razmaci nisu jasni, izaberi ručnu mrežu. Promena mreže ponovo postavlja sve granice.</p>
  <p>Dupli klik ili dodir fokusira deo slike. Kada je cela slika vidljiva, prevuci unutrašnjost dela da pomeriš okvir; kada je uvećana, prevlačenje pomera pogled. Žuti kružići menjaju granice, a zelene i plave strelice poravnavaju ivice sa susednim delovima. U prikazu svih granica moguće je samo poravnanje; klik na deo vraća uređivanje.</p>
@@ -219,7 +220,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
  <div id="viewer" class="viewer"><div id="stage" class="stage"><canvas id="preview"></canvas></div><div id="emptyCanvas" class="empty-canvas"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-upload"/></svg><strong>Dodaj sliku za početak</strong><p>Prevuci sliku ovde ili je izaberi sa uređaja.</p><button id="chooseFileCanvas" class="primary">Izaberi sliku</button><p class="hint">PNG, JPG, WEBP i drugi podržani formati · Do 50 MB</p></div></div>
  <p id="cropInfo" class="hint"></p>
  <details id="gallery" class="gallery" open><summary class="gallery-heading"><span class="gallery-title"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-grid"/></svg><span id="galleryTitle">Delovi slike (0)</span></span><span class="gallery-toggle"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-up"/></svg><span class="when-open">Zatvori prikaz</span><span class="when-closed">Otvori prikaz</span></span></summary><div id="grid" class="grid"></div></details>
- <div id="comparisonBackdrop" class="comparison-backdrop" hidden aria-hidden="true"></div>
+ <div id="comparisonBackdrop" class="popup-backdrop" hidden aria-hidden="true"></div>
  <section id="aiComparison" class="comparison" hidden role="dialog" aria-modal="true" aria-labelledby="comparisonTitle" tabindex="-1">
   <div class="comparison-heading"><h2 id="comparisonTitle">Deo slike</h2><button id="closeComparison" aria-label="Zatvori poređenje"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg></button></div>
   <div id="compareFrame" class="compare-frame">
@@ -424,9 +425,15 @@ function loadFile(f){
 viewer.ondragover=e=>{e.preventDefault();if(!exporting)viewer.classList.add('drag-over')};
 viewer.ondragleave=e=>{if(!viewer.contains?.(e.relatedTarget))viewer.classList.remove('drag-over')};
 viewer.ondrop=e=>{e.preventDefault();viewer.classList.remove('drag-over');loadFile(e.dataTransfer.files[0])};
-$('#privacyToggle').onclick=()=>{const panel=$('#privacyPanel');panel.hidden=!panel.hidden;$('#privacyToggle').setAttribute('aria-expanded',String(!panel.hidden))};
-$('#closePrivacy').onclick=()=>{$('#privacyPanel').hidden=true;$('#privacyToggle').setAttribute('aria-expanded','false')};
-window.addEventListener('keydown',e=>{if(e.key==='Escape'){clearComparison();$('#closePrivacy').onclick()}});
+function setPrivacyOpen(open){
+  $('#privacyPanel').hidden=!open;$('#privacyBackdrop').hidden=!open;
+  $('#privacyToggle').setAttribute('aria-expanded',String(open));
+  document.body.style.overflow=open?'hidden':'';
+  if(open)$('#privacyPanel').focus?.();else $('#privacyToggle').focus?.();
+}
+$('#privacyToggle').onclick=()=>setPrivacyOpen($('#privacyPanel').hidden);
+$('#closePrivacy').onclick=$('#privacyBackdrop').onclick=()=>setPrivacyOpen(false);
+window.addEventListener('keydown',e=>{if(e.key==='Escape'){clearComparison();if(!$('#privacyPanel').hidden)setPrivacyOpen(false)}});
 
 
 function detect({newImage=false}={}){
