@@ -403,7 +403,7 @@ const geometryControls=[cropWidth,cropHeight,dimensionsBtn,aspectRatio,aspectWid
 const aiProfile=$('#aiProfile'),exportFormat=$('#exportFormat'),previewAIBtn=$('#previewAI'),cancelExport=$('#cancelExport'),saveSelected=$('#saveSelected');
 const loadingOverlay=$('#loadingOverlay'),loaderProgress=$('#loaderProgress'),loaderCancel=$('#loaderCancel');
 let cancelRequested=false,comparisonURLs=[],comparisonBlobs=[],comparisonActive=0,comparisonDownload=null,aiActive=true;
-let busyReturnFocus=null,comparisonSize=null;
+let busyReturnFocus=null,comparisonSize=null,comparisonFullSource=null;
 const aspectLocks=new Map();
 const gridMode=$('#gridMode'),gridColsInput=$('#gridCols'),gridRowsInput=$('#gridRows'),applyGrid=$('#applyGrid');
 let gridCols=1,gridRows=1;
@@ -567,7 +567,6 @@ focusBtn.onclick=()=>focusedScene===selected?unfocusScene():focusScene();
 mobileNext.onclick=()=>{if(!next.disabled)next.onclick()};
 mobileFocus.onclick=()=>{if(!focusBtn.disabled)focusBtn.onclick()};
 mobilePrev.onclick=()=>{if(!prev.disabled)prev.onclick()};
-mobileShow.onclick=()=>{if(!$('#showScene').disabled)$('#showScene').onclick()};
 mobileEdges.onclick=()=>{if(!$('#overlayScene').disabled)$('#overlayScene').onclick()};
 function setBoundaries(show){
   showBoundaries=show;drag=null;
@@ -895,12 +894,17 @@ function cropCanvas(c){
 function exportCanvas(c){
   return fitExport(cropCanvas(c));
 }
-function previewCanvas(c){
+function previewDimensions(c){
   const target=Number(exportSize.value);
   const scale=!target&&aiActive?aiPlan(c).scale||1:1;
+  return {width:target||Math.round((c.x1-c.x0)*scale),height:target||Math.round((c.y1-c.y0)*scale)};
+}
+function previewCanvas(c,maxSide=Infinity){
+  const output=previewDimensions(c);
+  const ratio=Math.min(1,maxSide/Math.max(output.width,output.height));
+  const width=Math.max(1,Math.round(output.width*ratio)),height=Math.max(1,Math.round(output.height*ratio));
   const original=cropCanvas(c);
-  if(target)return fitExport(original,target,target);
-  if(scale>1)return fitExport(original,original.width*scale,original.height*scale);
+  if(width!==original.width||height!==original.height)return fitExport(original,width,height);
   return original;
 }
 function fitExport(original,targetWidth=Number(exportSize.value),targetHeight=targetWidth){
@@ -987,7 +991,7 @@ function clearComparison(){
   comparisonDownload=null;
   const wasOpen=!$('#aiComparison').hidden;$('#aiComparison').hidden=true;$('#comparisonBackdrop').hidden=true;
   if(wasOpen&&!exporting)document.body.style.overflow='';
-  comparisonSize=null;
+  comparisonSize=null;comparisonFullSource=null;
   if(wasOpen)$('#showScene').focus?.();
   $('#comparisonImage').removeAttribute('src');$('#comparisonOriginal').removeAttribute('src');
 }
@@ -1031,24 +1035,37 @@ function openComparison(index,info,enhanced=true,width=1,height=1,blob=null){
   $('#downloadCompared').onclick=()=>comparisonDownload?download(comparisonDownload.blob,comparisonDownload.name):saveScene(index);
   $('#aiResultInfo').textContent=info;comparisonSize={width,height};$('#comparisonBackdrop').hidden=false;$('#aiComparison').hidden=false;document.body.style.overflow='hidden';sizeComparison();$('#aiComparison').focus?.();
 }
-$('#showScene').onclick=async()=>{
+async function showScenePreview(){
+  if(!img||exporting)return;
   const index=selected,c={...crops[index]};
   let ready=null;
   try{
     setBusy(true,'Prikaz dela slike');clearComparison();setProgress(tr('Pripremam deo {index}…',{index:index+1}));
-    const preview=previewCanvas(c),width=preview.width,height=preview.height;
+    const output=previewDimensions(c);
+    const preview=previewCanvas(c,window.innerWidth<=550?2048:Infinity);
+    const limited=preview.width!==output.width||preview.height!==output.height;
     const blob=await imageBlob(preview);comparisonBlobs=[blob];comparisonURLs.push(URL.createObjectURL(blob));ensureNotCancelled();
-    ready={width,height};
+    ready={...output,limited};
   }catch(error){clearComparison();status.textContent=error.name==='AbortError'?tr('Obrada je prekinuta.'):tr('Greška: {message}',{message:tr(error.message)})}
   finally{setBusy(false)}
-  if(ready)openComparison(index,tr('{width} × {height} px · {format} · Bez AI',{width:ready.width,height:ready.height,format:exportFormat.value==='jpeg'?'JPEG':'PNG'}),false,ready.width,ready.height);
-};
+  if(ready){openComparison(index,tr('{width} × {height} px · {format} · Bez AI',{width:ready.width,height:ready.height,format:exportFormat.value==='jpeg'?'JPEG':'PNG'}),false,ready.width,ready.height);comparisonFullSource=ready.limited?c:null}
+}
+$('#showScene').onclick=mobileShow.onclick=showScenePreview;
 
 $('#closeComparison').onclick=clearComparison;
 $('#comparisonBackdrop').onclick=clearComparison;
-$('#openFullImage').onclick=()=>{
-  const blob=comparisonBlobs[comparisonActive];if(!blob)return;
-  const url=URL.createObjectURL(blob);window.open(url,'_blank','noopener');const timer=setTimeout(()=>URL.revokeObjectURL(url),300000);timer?.unref?.();
+$('#openFullImage').onclick=async()=>{
+  let blob=comparisonBlobs[comparisonActive];if(!blob)return;
+  if(!comparisonFullSource){
+    const url=URL.createObjectURL(blob);window.open(url,'_blank','noopener');const timer=setTimeout(()=>URL.revokeObjectURL(url),300000);timer?.unref?.();return;
+  }
+  const tab=window.open('','_blank');if(!tab)return;
+  tab.opener=null;
+  try{
+    tab.document.body.textContent=tr('Pripremam obradu…');
+    blob=await imageBlob(previewCanvas(comparisonFullSource));
+  }catch(error){tab.close();status.textContent=tr('Greška: {message}',{message:tr(error.message)});return}
+  const url=URL.createObjectURL(blob);tab.location.href=url;const timer=setTimeout(()=>URL.revokeObjectURL(url),300000);timer?.unref?.();
 };
 previewAIBtn.onclick=async()=>{
   let original,enhanced,ready=null;
