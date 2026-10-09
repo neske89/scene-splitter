@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+ <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#082b69"/><stop offset="1" stop-color="#0876ff"/></linearGradient></defs>
+ <rect width="1200" height="630" fill="url(#bg)"/>
+ <circle cx="1080" cy="-40" r="310" fill="#ffffff0d"/>
+ <circle cx="1150" cy="590" r="390" fill="#ffffff0c"/>
+ <rect x="80" y="83" width="120" height="120" rx="26" fill="#fff"/>
+ <path d="M105 108h30v30h-30zm40 0h30v30h-30zm-40 40h30v30h-30z" fill="#0768f7"/>
+ <path d="M145 148h30v30h-30z" fill="#18bd91"/>
+ <text x="80" y="335" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="90" font-weight="700">PixDivide</text>
+ <text x="83" y="405" fill="#dceaff" font-family="Arial,Helvetica,sans-serif" font-size="37">Crop and split images online</text>
+ <text x="83" y="462" fill="#dceaff" font-family="Arial,Helvetica,sans-serif" font-size="27">Precise crops · PNG and JPEG · ZIP export</text>
+ <g transform="translate(810 170) rotate(-8 150 150)">
+  <rect width="300" height="300" rx="30" fill="#ffffff24" stroke="#ffffff99" stroke-width="4"/>
+  <path d="M26 26h117v117H26zm131 0h117v117H157zM26 157h117v117H26z" fill="#fff"/>
+  <path d="M157 157h117v117H157z" fill="#70f0c4"/>
+ </g>
+</svg>

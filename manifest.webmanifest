@@ -1,6 +1,6 @@
 {
-  "name": "Iseci i podeli",
-  "short_name": "Iseci sliku",
+  "name": "PixDivide — iseci i podeli slike",
+  "short_name": "PixDivide",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

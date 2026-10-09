@@ -3,11 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=yes">
-<title>Iseci i podeli — isecanje slika</title>
+<title>PixDivide — iseci i podeli slike</title>
+<meta name="description" content="Crop one image or split it into precise, adjustable parts. Preview every crop and export PNG or JPEG files individually or as a ZIP. Free and private in your browser.">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<link rel="canonical" href="https://neske89.github.io/scene-splitter/">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="PixDivide">
+<meta property="og:title" content="PixDivide — Crop and Split Images Online">
+<meta property="og:description" content="Crop one image or split it into adjustable parts. Export precise PNG or JPEG images individually or as a ZIP, right in your browser.">
+<meta property="og:url" content="https://neske89.github.io/scene-splitter/">
+<meta property="og:image" content="https://neske89.github.io/scene-splitter/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="PixDivide: crop and split images online">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="PixDivide — Crop and Split Images Online">
+<meta name="twitter:description" content="Precise image crops, flexible grids and PNG or JPEG ZIP export in your browser.">
+<meta name="twitter:image" content="https://neske89.github.io/scene-splitter/social-card.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"PixDivide","url":"https://neske89.github.io/scene-splitter/","description":"Crop an image or split it into adjustable parts and export PNG or JPEG files individually or as a ZIP.","applicationCategory":"MultimediaApplication","operatingSystem":"Any","inLanguage":["sr","en","de","es"],"isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}</script>
 <meta name="theme-color" content="#f7f9fd">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Iseci i podeli">
+<meta name="apple-mobile-web-app-title" content="PixDivide">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
@@ -160,7 +178,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 <svg class="icon-sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs><symbol id="icon-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.1"/></symbol><symbol id="icon-upload" viewBox="0 0 24 24"><path d="M7 18H5a4 4 0 0 1-.5-8A7 7 0 0 1 18 8a5 5 0 0 1 1 10h-2M12 21V10m-4 4 4-4 4 4"/></symbol><symbol id="icon-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="icon-grid" viewBox="0 0 24 24"><path d="M3 3h6v6H3zm12 0h6v6h-6zM3 15h6v6H3zm12 0h6v6h-6z"/></symbol><symbol id="icon-focus" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3"/><path d="M12 1v4m0 14v4M1 12h4m14 0h4"/></symbol><symbol id="icon-edges" viewBox="0 0 24 24"><path d="M9 3H4v5m11-5h5v5m0 8v5h-5m-6 0H4v-5"/><path d="M4 12h16"/></symbol><symbol id="icon-arrow-left" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></symbol><symbol id="icon-arrow-right" viewBox="0 0 24 24"><path d="m10 6 6 6-6 6"/></symbol><symbol id="icon-refresh" viewBox="0 0 24 24"><path d="M20 9a8 8 0 1 0-1 9M20 3v6h-6"/></symbol><symbol id="icon-sparkles" viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5ZM4 2v4M2 4h4m14 14v4m-2-2h4"/></symbol><symbol id="icon-compare" viewBox="0 0 24 24"><path d="M9 4H4v16h5m6-16h5v16h-5M12 2v20"/></symbol><symbol id="icon-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></symbol><symbol id="icon-export" viewBox="0 0 24 24"><path d="M12 15V2m-5 5 5-5 5 5M8 8H4v13h16V8h-4"/></symbol><symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol><symbol id="icon-up" viewBox="0 0 24 24"><path d="m6 14 6-6 6 6"/></symbol></defs></svg>
 <div id="appShell">
 <header class="app-header">
- <div><h1>Iseci i podeli</h1><p class="subtitle">Iseci jedan deo slike ili je podeli na više manjih slika. Podesi svaki okvir i preuzmi rezultate.</p></div>
+ <div><h1>PixDivide</h1><p class="subtitle">Iseci jedan deo slike ili je podeli na više manjih slika. Podesi svaki okvir i preuzmi rezultate.</p></div>
  <div class="header-actions"><select id="language" class="language-select" aria-label="Jezik"><option value="sr">Srpski</option><option value="en">English</option><option value="de">Deutsch</option><option value="es">Español</option></select><button id="removeImage" class="remove-image" hidden disabled aria-label="Ukloni sliku"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg><span>Ukloni sliku</span></button><button id="privacyToggle" class="soft" aria-expanded="false" aria-controls="privacyPanel"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg><span>Kako radi i privatnost</span></button></div>
 </header>
 <div id="privacyBackdrop" class="popup-backdrop" hidden aria-hidden="true"></div>
@@ -193,7 +211,6 @@ canvas{display:block;width:100%;height:auto;background:#222426}
  <div class="zoomrow"><label for="zoom">Zoom</label><button id="minus" disabled aria-label="Smanji">−</button><input id="zoom" type="range" min="100" max="600" step="10" value="100" disabled><button id="plus" disabled aria-label="Uvećaj">+</button><button id="resetZoom" disabled>100%</button></div>
  <section class="panel">
   <div class="panel-heading"><h2><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-sparkles"/></svg>Obrada slike</h2><label class="ai-switch"><input id="aiEnabled" type="checkbox" checked><span id="aiEnabledLabel">Uključeno</span></label></div>
-  <label class="field processing-mode" for="processingMode">Način obrade<select id="processingMode"><option value="photo">AI za slike</option><option value="text">Očuvaj slova (bez AI)</option></select></label>
   <label class="field processing-mode" for="aiProfile">Model<select id="aiProfile"><option value="auto">Automatski</option><option value="slim">ESRGAN Slim · telefon</option><option value="medium">ESRGAN Medium · telefon</option><option value="thick">ESRGAN Thick · zahtevan</option><option value="real-general">Real-ESRGAN · fotografije · zahtevan</option><option value="real-anime">Real-ESRGAN · ilustracije · zahtevan</option><option value="swinir">SwinIR 8× · eksperimentalno</option></select></label>
   <div class="panel-actions"><button id="previewAI" class="primary" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-compare"/></svg><span id="previewLabel">Uporedi AI rezultat</span></button><button id="cancelAI" class="secondary" disabled><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg>Prekini</button></div>
   <p class="hint panel-note"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg><span id="processingHint">AI obrađuje sliku prema ciljnoj veličini za štampu. Lokalni modeli rade 2× ili 4×; ako je potrebno više, ostatak se uvećava bez AI. Tekst može biti izmenjen.</span></p>
@@ -245,8 +262,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 <script src="./translations.js"></script>
 <script>
 const EN={
-  'Iseci i podeli':'Crop & Split',
-  'Iseci i podeli — isecanje slika':'Crop & Split — image cropping',
+  'PixDivide — iseci i podeli slike':'PixDivide — crop and split images',
   'Iseci jedan deo slike ili je podeli na više manjih slika. Podesi svaki okvir i preuzmi rezultate.':'Crop one part of an image or split it into smaller images. Adjust each frame and download the results.',
   'Jezik':'Language','Ukloni sliku':'Remove image','Kako radi i privatnost':'How it works and privacy','Zatvori':'Close',
   'Sve slike obrađuju se na tvom uređaju i ne šalju se na server. Lokalni AI model preuzima se sa ovog sajta pri prvoj upotrebi, a zatim se čuva za sledeću obradu.':'Images are processed on your device and are not sent to a server. The local AI model is downloaded from this site on first use and saved for later.',
@@ -260,8 +276,8 @@ const EN={
   'Širina (px)':'Width (px)','Visina (px)':'Height (px)','Odnos stranica':'Aspect ratio','Slobodan':'Free','Prilagođen':'Custom',
   'Širina odnosa':'Ratio width','Visina odnosa':'Ratio height','Primeni dimenzije':'Apply dimensions','Primeni odnos':'Apply ratio',
   'Smanji':'Zoom out','Uvećaj':'Zoom in','Obrada slike':'Image processing','Uključeno':'On','Isključeno':'Off',
-  'Način obrade':'Processing mode','AI za slike':'AI for images','AI za slike (ESRGAN)':'AI for images (ESRGAN)','Očuvaj slova (bez AI)':'Preserve letters (no AI)',
-  'Automatski':'Automatic','Uporedi AI rezultat':'Compare AI result','Uporedi rezultat':'Compare result','Prekini':'Cancel',
+
+  'Automatski':'Automatic','Uporedi AI rezultat':'Compare AI result','Prekini':'Cancel',
   'ESRGAN Slim · telefon':'ESRGAN Slim · phone','ESRGAN Medium · telefon':'ESRGAN Medium · phone',
   'ESRGAN Thick · zahtevan':'ESRGAN Thick · demanding','Real-ESRGAN · fotografije · zahtevan':'Real-ESRGAN · photos · demanding',
   'Real-ESRGAN · ilustracije · zahtevan':'Real-ESRGAN · illustrations · demanding',
@@ -270,7 +286,7 @@ const EN={
   'ESRGAN Thick može raditi 2×, 4× ili 8×. Zahteva mnogo memorije i nije prilagođen telefonima. Tekst se može promeniti.':'ESRGAN Thick can run at 2×, 4× or 8×. It needs substantial memory and is not suited to phones. Text may change.',
   'Real-ESRGAN radi 4×. Zahteva mnogo vremena i memorije i nije prilagođen telefonima. Tekst se može promeniti.':'Real-ESRGAN runs at 4×. It needs substantial time and memory and is not suited to phones. Text may change.',
   'AI obrađuje sliku prema ciljnoj veličini za štampu. Lokalni modeli rade 2× ili 4×; ako je potrebno više, ostatak se uvećava bez AI. Tekst može biti izmenjen.':'AI processes the image for the selected print size. Local models use 2× or 4×; any further enlargement uses regular interpolation. Text may change.',
-  'Uvećava postojeće piksele bez AI rekonstrukcije i bez prepisivanja teksta. Slova neće dobiti detalje kojih nema na originalu.':'Enlarges existing pixels without AI reconstruction or retyping text. Letters cannot gain details missing from the original.',
+
   'AI bira lokalni 2× ili 4× model prema ciljnoj veličini. Kada cilj traži više, ostatak se uvećava bez AI. Tekst može biti izmenjen; proveri pregled.':'AI selects a local 2× or 4× model based on target size. Any further enlargement uses regular interpolation. Text may change; inspect the preview.',
   'Izvoz slika':'Image export','Ciljna veličina':'Target size','Preuzmi ZIP':'Download ZIP','Preuzmi izabrani deo':'Download selected part',
   'Izaberi sliku za isecanje ili deljenje.':'Choose an image to crop or split.','Poravnanje i pomoć':'Alignment and help',
@@ -286,7 +302,7 @@ const EN={
   'Pripremam obradu…':'Preparing…',
   'Mreža —':'Grid —','Deo —':'Part —','Delovi slike ({count})':'Image parts ({count})',
   'Delova: {count} · {size} · {format} · {mode}':'Parts: {count} · {size} · {format} · {mode}',
-  'Slova bez AI':'Letters without AI','AI uključen':'AI on','AI isključen':'AI off',
+  'AI uključen':'AI on','AI isključen':'AI off',
   '{cols} × {rows} · delova: {count}':'{cols} × {rows} · parts: {count}',
   'Deo {index} / {total}':'Part {index} / {total}','Deo {index}':'Part {index}',
   'Postavljena mreža {cols} × {rows} (delova: {count}). {hint}':'Grid set to {cols} × {rows} (parts: {count}). {hint}',
@@ -310,14 +326,14 @@ const EN={
   'Prekidam obradu…':'Cancelling…','Obrada je prekinuta.':'Processing cancelled.','Greška: {message}':'Error: {message}',
   'Izvoz dela slike':'Exporting image part','Prikaz dela slike':'Previewing image part','Pripremam deo {index}…':'Preparing part {index}…',
   'Deo {index} je spreman.':'Part {index} is ready.','Pripremam poređenje…':'Preparing comparison…',
-  'Poređenje rezultata':'Comparing results','Poređenje AI rezultata':'Comparing AI results',
+  'Poređenje AI rezultata':'Comparing AI results',
   'Poređenje dela {index} je spremno.':'Comparison of part {index} is ready.',
-  'AI korak je prevelik za ovaj uređaj. Izaberi manji deo slike ili režim za očuvanje slova.':'The AI step is too large for this device. Choose a smaller part or preserve-letters mode.',
+  'AI korak je prevelik za ovaj uređaj. Izaberi manji deo slike ili isključi AI.':'The AI step is too large for this device. Choose a smaller image part or turn AI off.',
   '{label}: učitavam lokalni AI model…':'{label}: loading local AI model…',
   '{label}: AI obrada {percent}%…':'{label}: AI processing {percent}%…',
   'Original dela {index}':'Original of part {index}','AI rezultat dela {index}':'AI result of part {index}',
-  'Uvećani deo bez AI':'Enlarged part without AI','Očuvaj slova':'Preserve letters',
-  'Otvori deo u punoj veličini':'Open part at full size','Otvori obrađeni deo u punoj veličini':'Open processed part at full size',
+
+  'Otvori deo u punoj veličini':'Open part at full size',
   'Otvori AI rezultat u punoj veličini':'Open AI result at full size','Otvori original u punoj veličini':'Open original at full size',
   'Original · {format}':'Original · {format}','AI rezultat {scale}×':'AI result {scale}×','AI {scale}×':'AI {scale}×',
   '{width} × {height} px · {format} · Bez AI':'{width} × {height} px · {format} · No AI',
@@ -367,7 +383,7 @@ function applyStaticTranslations(){
   for(const item of staticText)item.node.nodeValue=item.original.replace(item.key,tr(item.key));
   for(const item of staticAttributes)item.element.setAttribute(item.name,tr(item.key));
   if(document.documentElement)document.documentElement.lang=language==='sr'?'sr-Latn':language;
-  document.title=tr('Iseci i podeli — isecanje slika');
+  document.title=tr('PixDivide — iseci i podeli slike');
   $('#language').value=language;
 }
 const $=s=>document.querySelector(s);
@@ -379,7 +395,7 @@ const boundariesBtn=$('#boundaries'),alignScene=$('#alignScene'),alignEdge=$('#a
 const cropWidth=$('#cropWidth'),cropHeight=$('#cropHeight'),dimensionsBtn=$('#applyDimensions');
 const aspectRatio=$('#aspectRatio'),aspectWidth=$('#aspectWidth'),aspectHeight=$('#aspectHeight'),aspectBtn=$('#applyAspect');
 const geometryControls=[cropWidth,cropHeight,dimensionsBtn,aspectRatio,aspectWidth,aspectHeight,aspectBtn];
-const aiProfile=$('#aiProfile'),processingMode=$('#processingMode'),exportFormat=$('#exportFormat'),previewAIBtn=$('#previewAI'),cancelExport=$('#cancelExport'),saveSelected=$('#saveSelected');
+const aiProfile=$('#aiProfile'),exportFormat=$('#exportFormat'),previewAIBtn=$('#previewAI'),cancelExport=$('#cancelExport'),saveSelected=$('#saveSelected');
 const loadingOverlay=$('#loadingOverlay'),loaderProgress=$('#loaderProgress'),loaderCancel=$('#loaderCancel');
 let cancelRequested=false,comparisonURLs=[],comparisonBlobs=[],comparisonActive=0,comparisonDownload=null,aiActive=true;
 let busyReturnFocus=null,comparisonSize=null;
@@ -483,13 +499,13 @@ function updateUI(){
   syncDimensions();syncAspect();
   syncFocusButton();
   $('#emptyCanvas').hidden=!!img;
-  const textMode=processingMode.value==='text',enabled=aiActive&&!textMode;
+  const enabled=aiActive;
   $('#aiEnabled').checked=enabled;
-  $('#aiEnabled').disabled=exporting||textMode;
-  $('#aiEnabledLabel').textContent=tr(textMode?'Bez AI':enabled?'Uključeno':'Isključeno');
-  aiProfile.disabled=exporting||textMode;
-  $('#previewLabel').textContent=tr(textMode?'Uporedi rezultat':'Uporedi AI rezultat');
-  $('#processingHint').textContent=tr(textMode?'Uvećava postojeće piksele bez AI rekonstrukcije i bez prepisivanja teksta. Slova neće dobiti detalje kojih nema na originalu.':aiProfile.value==='swinir'?'SwinIR uvećava 8× lokalno na uređaju. Eksperimentalno je, sporo i nije prilagođeno telefonima. Probaj najpre mali deo; tekst se može promeniti.':aiProfile.value==='thick'?'ESRGAN Thick može raditi 2×, 4× ili 8×. Zahteva mnogo memorije i nije prilagođen telefonima. Tekst se može promeniti.':String(aiProfile.value||'').startsWith('real-')?'Real-ESRGAN radi 4×. Zahteva mnogo vremena i memorije i nije prilagođen telefonima. Tekst se može promeniti.':'AI bira lokalni 2× ili 4× model prema ciljnoj veličini. Kada cilj traži više, ostatak se uvećava bez AI. Tekst može biti izmenjen; proveri pregled.');
+  $('#aiEnabled').disabled=exporting;
+  $('#aiEnabledLabel').textContent=tr(enabled?'Uključeno':'Isključeno');
+  aiProfile.disabled=exporting;
+  $('#previewLabel').textContent=tr('Uporedi AI rezultat');
+  $('#processingHint').textContent=tr(aiProfile.value==='swinir'?'SwinIR uvećava 8× lokalno na uređaju. Eksperimentalno je, sporo i nije prilagođeno telefonima. Probaj najpre mali deo; tekst se može promeniti.':aiProfile.value==='thick'?'ESRGAN Thick može raditi 2×, 4× ili 8×. Zahteva mnogo memorije i nije prilagođen telefonima. Tekst se može promeniti.':String(aiProfile.value||'').startsWith('real-')?'Real-ESRGAN radi 4×. Zahteva mnogo vremena i memorije i nije prilagođen telefonima. Tekst se može promeniti.':'AI bira lokalni 2× ili 4× model prema ciljnoj veličini. Kada cilj traži više, ostatak se uvećava bez AI. Tekst može biti izmenjen; proveri pregled.');
   $('#showScene').disabled=exporting||!img;$('#downloadCompared').disabled=exporting||!img;
   $('#chooseFileCanvas').disabled=exporting;
   $('#removeImage').hidden=!img;$('#removeImage').disabled=exporting||!img;
@@ -497,13 +513,13 @@ function updateUI(){
   $('#galleryTitle').textContent=tr('Delovi slike ({count})',{count:crops.length});
   $('#exportSummary').textContent=img?tr('Delova: {count} · {size} · {format} · {mode}',{
     count:crops.length,size:exportSize.value==='original'?tr('Original'):exportSize.value+' × '+exportSize.value+' px',
-    format:exportFormat.value==='jpeg'?'JPEG':'PNG',mode:tr(textMode?'Slova bez AI':enabled?'AI uključen':'AI isključen')}):tr('Izaberi sliku za isecanje ili deljenje.');
+    format:exportFormat.value==='jpeg'?'JPEG':'PNG',mode:tr(enabled?'AI uključen':'AI isključen')}):tr('Izaberi sliku za isecanje ili deljenje.');
   if(!exporting)zipBtn.textContent=tr('Preuzmi ZIP')+(img?' ('+crops.length+')':'');
   $('#manualGrid').hidden=gridMode.value!=='manual';
   $('#gridSummary').textContent=img?tr('{cols} × {rows} · delova: {count}',{cols:gridCols,rows:gridRows,count:crops.length}):tr('Mreža —');
   applyGrid.disabled=exporting||!img;
   [gridMode,gridColsInput,gridRowsInput].forEach(control=>control.disabled=exporting);
-  saveSelected.disabled=exporting||!img;previewAIBtn.disabled=exporting||!img||(!enabled&&!textMode);
+  saveSelected.disabled=exporting||!img;previewAIBtn.disabled=exporting||!img||!enabled;
   $('#overlayScene').disabled=exporting||!img;
   sceneLabel.textContent=img?tr('Deo {index} / {total}',{index:selected+1,total:crops.length}):tr('Deo —');
   prev.disabled=exporting||!img||selected===0; next.disabled=exporting||!img||selected===crops.length-1;
@@ -845,7 +861,7 @@ function setProgress(message,percent=null){
 function setBusy(busy,title='Obrada slike'){
   if(busy){busyReturnFocus=document.activeElement;cancelRequested=false;$('#loaderTitle').textContent=tr(title);setProgress('Pripremam obradu…');}
   exporting=busy;cancelExport.disabled=!busy;drag=null;pinch=null;pointers.clear();
-  [file,gridMode,gridColsInput,gridRowsInput,applyGrid,detectBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,$('#overlayScene'),boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls,exportSize,aiProfile,processingMode,exportFormat,saveSelected,previewAIBtn,...grid.querySelectorAll('button')].forEach(x=>x.disabled=busy);
+  [file,gridMode,gridColsInput,gridRowsInput,applyGrid,detectBtn,zipBtn,zoomEl,plus,minus,resetZoom,focusBtn,$('#overlayScene'),boundariesBtn,alignScene,alignEdge,alignBtn,...geometryControls,exportSize,aiProfile,exportFormat,saveSelected,previewAIBtn,...grid.querySelectorAll('button')].forEach(x=>x.disabled=busy);
   updateUI();
   loadingOverlay.hidden=!busy;$('#appShell').inert=busy;document.body.style.overflow=busy?'hidden':'';
   loaderCancel.disabled=!busy||cancelRequested;
@@ -863,7 +879,7 @@ function exportCanvas(c){
 }
 function previewCanvas(c){
   const target=Number(exportSize.value);
-  const scale=!target&&processingMode.value==='photo'&&aiActive?aiPlan(c).scale||1:1;
+  const scale=!target&&aiActive?aiPlan(c).scale||1:1;
   const original=cropCanvas(c);
   if(target)return fitExport(original,target,target);
   if(scale>1)return fitExport(original,original.width*scale,original.height*scale);
@@ -898,7 +914,7 @@ cancelExport.onclick=()=>{if(!exporting||cancelRequested)return;cancelRequested=
 loaderCancel.onclick=()=>cancelExport.onclick();
 function sceneFilename(index){return 'deo-'+String(index+1).padStart(2,'0')+(exportFormat.value==='jpeg'?'.jpg':'.png')}
 function aiPlan(c){
-  if(processingMode.value==='text'||!aiActive)return {scale:0};
+  if(!aiActive)return {scale:0};
   const width=Math.round(c.x1-c.x0),height=Math.round(c.y1-c.y0),target=Number(exportSize.value),longSide=Math.max(width,height);
   if(target&&longSide>=target)return {scale:0};
   const required=target?target/longSide:2;
@@ -908,7 +924,7 @@ function aiPlan(c){
   const fits=s=>width*height*s*s<=options.maxPixels&&width*s<=8192&&height*s<=8192;
   if(profile==='thick'&&scale===8&&!fits(8)){scale=4;options=SceneAI.settings(profile,scale)}
   if(!profile.startsWith('real-')&&profile!=='swinir'&&scale===4&&!fits(4)){scale=2;options=SceneAI.settings(profile,scale)}
-  if(!fits(scale))throw Error('AI korak je prevelik za ovaj uređaj. Izaberi manji deo slike ili režim za očuvanje slova.');
+  if(!fits(scale))throw Error('AI korak je prevelik za ovaj uređaj. Izaberi manji deo slike ili isključi AI.');
   return {scale,options,interpolated:target>longSide*scale};
 }
 async function enhancedCrop(c,index,total=1){
@@ -944,7 +960,6 @@ async function saveScene(index){
 saveSelected.onclick=()=>saveScene(selected);
 $('#aiEnabled').onchange=()=>{aiActive=$('#aiEnabled').checked;$('#aiNotice').hidden=true;clearComparison();updateUI()};
 aiProfile.onchange=()=>{clearComparison();updateUI()};
-processingMode.onchange=()=>{$('#aiNotice').hidden=true;clearComparison();updateUI()};
 exportSize.onchange=exportFormat.onchange=()=>{clearComparison();updateUI()};
 $('#cancelAI').onclick=()=>{cancelExport.onclick();$('#cancelAI').disabled=true};
 
@@ -961,10 +976,10 @@ function clearComparison(){
 function setComparePosition(value){
   $('#compareSlider').value=value;$('#compareFrame').style.setProperty('--split',value+'%');
   comparisonActive=comparisonURLs[1]&&value<100?1:0;
-  $('#openFullImage').textContent=tr(!comparisonURLs[1]?'Otvori deo u punoj veličini':comparisonActive?(processingMode.value==='text'?'Otvori obrađeni deo u punoj veličini':'Otvori AI rezultat u punoj veličini'):'Otvori original u punoj veličini');
+  $('#openFullImage').textContent=tr(!comparisonURLs[1]?'Otvori deo u punoj veličini':comparisonActive?'Otvori AI rezultat u punoj veličini':'Otvori original u punoj veličini');
 }
 $('#compareSlider').oninput=()=>{
-  if(comparisonURLs[1]){$('#comparisonImage').src=comparisonURLs[1];$('#comparisonImage').alt=tr(processingMode.value==='text'?'Uvećani deo bez AI':'AI rezultat izabranog dela')}
+  if(comparisonURLs[1]){$('#comparisonImage').src=comparisonURLs[1];$('#comparisonImage').alt=tr('AI rezultat izabranog dela')}
   setComparePosition(Number($('#compareSlider').value));
 };
 function sizeComparison(){
@@ -982,18 +997,18 @@ function sizeComparison(){
 function openComparison(index,info,enhanced=true,width=1,height=1,blob=null){
   const image=$('#comparisonImage');image.src=comparisonURLs[enhanced?1:0];
   comparisonActive=enhanced?1:0;
-  image.alt=enhanced?(processingMode.value==='text'?tr('Uvećani deo bez AI'):tr('AI rezultat dela {index}',{index:index+1})):tr('Original dela {index}',{index:index+1});
+  image.alt=enhanced?tr('AI rezultat dela {index}',{index:index+1}):tr('Original dela {index}',{index:index+1});
   $('#comparisonOriginal').src=comparisonURLs[0];
   $('#comparisonTitle').textContent=tr('Deo {index}',{index:index+1});
   const format=exportFormat.value==='jpeg'?'JPEG':'PNG';
   $('#originalTag').textContent=enhanced?tr('Original · {format}',{format}):tr('Original');
   const plan=enhanced?aiPlan(crops[index]):{scale:0};
-  $('#enhancedTag').textContent=(processingMode.value==='text'?tr('Očuvaj slova'):plan.scale?tr('AI rezultat {scale}×',{scale:plan.scale}):tr('Bez AI'))+' · '+format;
-  $('#showEnhanced').textContent=tr(processingMode.value==='text'?'Očuvaj slova':plan.scale?'AI rezultat':'Bez AI');
+  $('#enhancedTag').textContent=tr(plan.scale?'AI rezultat {scale}×':'Bez AI',{scale:plan.scale})+' · '+format;
+  $('#showEnhanced').textContent=tr(plan.scale?'AI rezultat':'Bez AI');
   ['#compareTags','#compareDivider','#compareSlider','#compareModes'].forEach(id=>$(id).hidden=!enhanced);
   setComparePosition(enhanced?50:100);
   $('#showOriginal').onclick=()=>{comparisonActive=0;image.src=comparisonURLs[0];image.alt=tr('Original dela {index}',{index:index+1});setComparePosition(100)};
-  $('#showEnhanced').onclick=()=>{comparisonActive=1;image.src=comparisonURLs[1];image.alt=processingMode.value==='text'?tr('Uvećani deo bez AI'):tr('AI rezultat dela {index}',{index:index+1});setComparePosition(0)};
+  $('#showEnhanced').onclick=()=>{comparisonActive=1;image.src=comparisonURLs[1];image.alt=tr('AI rezultat dela {index}',{index:index+1});setComparePosition(0)};
   comparisonDownload=blob?{blob,name:sceneFilename(index)}:null;
   $('#downloadCompared').onclick=()=>comparisonDownload?download(comparisonDownload.blob,comparisonDownload.name):saveScene(index);
   $('#aiResultInfo').textContent=info;comparisonSize={width,height};$('#comparisonBackdrop').hidden=false;$('#aiComparison').hidden=false;document.body.style.overflow='hidden';sizeComparison();$('#aiComparison').focus?.();
@@ -1020,13 +1035,13 @@ $('#openFullImage').onclick=()=>{
 previewAIBtn.onclick=async()=>{
   let original,enhanced,ready=null;
   try{
-    setBusy(true,processingMode.value==='text'?'Poređenje rezultata':'Poređenje AI rezultata');clearComparison();const index=selected,c={...crops[index]};
+    setBusy(true,'Poređenje AI rezultata');clearComparison();const index=selected,c={...crops[index]};
     const plan=aiPlan(c);
     enhanced=await prepareExport(c,index);ensureNotCancelled();
     const width=enhanced.width,height=enhanced.height,format=exportFormat.value==='jpeg'?'JPEG':'PNG';
     const info=tr('{sourceWidth} × {sourceHeight} px → {width} × {height} px · {format} · {mode}{extra}',{
       sourceWidth:c.x1-c.x0,sourceHeight:c.y1-c.y0,width,height,format,
-      mode:processingMode.value==='text'?tr('Bez AI'):plan.scale?tr('AI {scale}×',{scale:plan.scale}):tr('Bez AI'),
+      mode:plan.scale?tr('AI {scale}×',{scale:plan.scale}):tr('Bez AI'),
       extra:plan.interpolated?tr(' + dodatno uvećanje'):''});
     setProgress('Pripremam poređenje…',100);
     const enhancedBlob=await imageBlob(enhanced);enhanced=null;ensureNotCancelled();

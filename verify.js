@@ -525,7 +525,7 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   assert.strictEqual(vm.runInContext('aiActive',context),false);assert.strictEqual(elements.get('#previewAI').disabled,true);
   elements.get('#aiEnabled').checked=true;elements.get('#aiEnabled').onchange();
   assert.strictEqual(vm.runInContext('aiActive',context),true);assert.strictEqual(elements.get('#aiEnabledLabel').textContent,'Uključeno');
-  elements.get('#processingMode').value='photo';elements.get('#aiProfile').value='auto';elements.get('#exportFormat').value='png';elements.get('#exportSize').value='original';
+  elements.get('#aiProfile').value='auto';elements.get('#exportFormat').value='png';elements.get('#exportSize').value='original';
   await vm.runInContext('saveScene(0)',context);
   assert.strictEqual(elements.get('#loadingOverlay').hidden,true);
   assert.strictEqual(elements.get('#appShell').inert,false);
@@ -629,19 +629,8 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   assert.strictEqual(downloads.at(-1).name,'deo-01.jpg');
   assert.strictEqual(calls.length,aiCount);
   elements.get('#closeComparison').onclick();assert.strictEqual(revoked.length,releasedBeforeAI+4);
-  // Text mode upscales without loading an AI model and previews the selected format.
-  elements.get('#processingMode').value='text';elements.get('#processingMode').onchange();
-  const textCalls=calls.length;
-  await vm.runInContext('saveScene(0)',context);
-  assert.strictEqual(calls.length,textCalls);
-  assert.deepStrictEqual(blobCalls.at(-1),{width:2048,height:2048,mime:'image/jpeg',quality:.98});
-  await elements.get('#previewAI').onclick();
-  assert.strictEqual(calls.length,textCalls);
-  assert.strictEqual(elements.get('#showEnhanced').textContent,'Očuvaj slova');
-  assert.strictEqual(elements.get('#enhancedTag').textContent,'Očuvaj slova · JPEG');
-  assert.strictEqual(elements.get('#aiEnabled').disabled,true);
-  elements.get('#closeComparison').onclick();
-  elements.get('#processingMode').value='photo';elements.get('#processingMode').onchange();
+  assert(!html.includes('id="processingMode"'));
+  assert(!html.includes('Očuvaj slova (bez AI)'));
   // A mobile-sized 4× AI result may be interpolated to the 4096 px print target.
   const oldSettings=context.SceneAI.settings;
   context.SceneAI.settings=(profile,scale)=>({family:'slim',scale,maxPixels:8388608});
@@ -670,6 +659,7 @@ console.log('all numbered handles, text-only opacity, separated checkerboard arr
   elements.get('#aiEnabled').checked=false;elements.get('#aiEnabled').onchange();elements.get('#exportSize').value='original';elements.get('#exportFormat').value='png';const withoutAI=calls.length;
   await vm.runInContext('saveScene(2)',context);
   assert.strictEqual(calls.length,withoutAI);assert.strictEqual(blobCalls.at(-1).width,20);
+  assert.strictEqual(elements.get('#previewAI').disabled,true);
   // Cancellation between scenes must suppress downloading a partial archive.
   elements.get('#aiEnabled').checked=true;elements.get('#aiEnabled').onchange();const downloadCount=downloads.length;
   context.SceneAI.upscale=async()=>{elements.get('#loaderCancel').onclick();assert.strictEqual(elements.get('#loaderCancel').disabled,true);throw Object.assign(Error('cancelled'),{name:'AbortError'})};
