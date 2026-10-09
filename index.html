@@ -47,6 +47,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visi
 .app-header{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:24px}
 .header-actions{display:flex;align-items:center;gap:8px;flex:none}
 .language-select{min-height:42px;border:1px solid #d6deec;border-radius:10px;background:#fff;color:#46516b;padding:8px;font-weight:600;cursor:pointer}
+.mobile-scene-actions{display:none;align-items:center;gap:6px}
+.mobile-scene-actions button{width:40px;min-width:40px;height:42px;padding:8px}
+.mobile-scene-actions .icon{width:21px;height:21px}
 .remove-image{background:#fff0f0;border-color:#f2b8b5;color:#b42318}
 .remove-image:hover:not(:disabled){background:#ffe1e1;border-color:#e8918b}
 h1{font-size:31px;letter-spacing:-1px;margin:0 0 5px;line-height:1.2}
@@ -171,7 +174,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 @media(max-width:1100px){body{padding:20px}.inline-field{gap:7px}}
 @media(max-width:999px){.canvas-panel{grid-row:1}.sidebar{grid-row:2}.viewer{min-height:250px}.app-header{gap:14px}.app-header .soft{font-size:12px}.app-header .soft span{max-width:100px}.sidebar{min-height:0}}
 @media(max-width:850px){.app-header{flex-wrap:wrap}.app-header>div:first-child{flex-basis:100%}.header-actions{margin-left:auto}}
-@media(max-width:550px){body{padding:16px 12px}h1{font-size:26px}.subtitle{font-size:13px}.app-header{margin-bottom:18px}.app-header .soft,.app-header .remove-image{min-width:38px;padding:9px}.app-header .soft span,.app-header .remove-image span{display:none}.scene-nav{gap:6px}.scene-nav button{font-size:11px;gap:5px}.geometry{gap:8px}.zoomrow{gap:8px;grid-template-columns:auto 35px minmax(0,1fr) 35px 62px}.inline-field{flex-direction:column;align-items:stretch;gap:6px}.export-options{grid-template-columns:minmax(0,1fr) 85px}.gallery{padding:12px}.gallery-title{font-size:16px}.grid{grid-auto-columns:92px}.card img{height:92px}.grid-controls{gap:8px}.grid-controls button{font-size:12px;padding:9px}.comparison{padding:16px}}
+@media(max-width:550px){body{padding:16px 12px}h1{font-size:26px}.subtitle{font-size:13px}.app-header{margin-bottom:18px}.header-actions{gap:5px}.mobile-scene-actions{display:flex;gap:4px}.mobile-scene-actions button{width:38px;min-width:38px;height:40px}.language-select{width:50px;min-width:50px;min-height:40px;padding:5px;font-size:21px}.app-header .soft,.app-header .remove-image{min-width:38px;padding:9px}.app-header .soft span,.app-header .remove-image span{display:none}.scene-nav{gap:6px}.scene-nav button{font-size:11px;gap:5px}.geometry{gap:8px}.zoomrow{gap:8px;grid-template-columns:auto 35px minmax(0,1fr) 35px 62px}.inline-field{flex-direction:column;align-items:stretch;gap:6px}.export-options{grid-template-columns:minmax(0,1fr) 85px}.gallery{padding:12px}.gallery-title{font-size:16px}.grid{grid-auto-columns:92px}.card img{height:92px}.grid-controls{gap:8px}.grid-controls button{font-size:12px;padding:9px}.comparison{padding:16px}}
 </style>
 </head>
 <body>
@@ -179,7 +182,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 <div id="appShell">
 <header class="app-header">
  <div><h1>PixDivide</h1><p class="subtitle">Iseci jedan deo slike ili je podeli na više manjih slika. Podesi svaki okvir i preuzmi rezultate.</p></div>
- <div class="header-actions"><select id="language" class="language-select" aria-label="Jezik"><option value="sr">Srpski</option><option value="en">English</option><option value="de">Deutsch</option><option value="es">Español</option></select><button id="removeImage" class="remove-image" hidden disabled aria-label="Ukloni sliku"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg><span>Ukloni sliku</span></button><button id="privacyToggle" class="soft" aria-expanded="false" aria-controls="privacyPanel"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg><span>Kako radi i privatnost</span></button></div>
+ <div class="header-actions"><div class="mobile-scene-actions" role="group" aria-label="Navigacija po delovima slike"><button id="mobileNext" class="secondary" disabled aria-label="Sledeći" title="Sledeći"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-arrow-right"/></svg></button><button id="mobileFocus" class="secondary" disabled aria-label="Fokusiraj" title="Fokusiraj" aria-pressed="false"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-focus"/></svg></button><button id="mobilePrev" class="secondary" disabled aria-label="Prethodni" title="Prethodni"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-arrow-left"/></svg></button></div><select id="language" class="language-select" aria-label="Jezik" title="Jezik"><option value="sr" aria-label="Srpski" title="Srpski">🇷🇸</option><option value="en" aria-label="English" title="English">🇬🇧</option><option value="de" aria-label="Deutsch" title="Deutsch">🇩🇪</option><option value="es" aria-label="Español" title="Español">🇪🇸</option></select><button id="removeImage" class="remove-image" hidden disabled aria-label="Ukloni sliku"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"/></svg><span>Ukloni sliku</span></button><button id="privacyToggle" class="soft" aria-expanded="false" aria-controls="privacyPanel"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-info"/></svg><span>Kako radi i privatnost</span></button></div>
 </header>
 <div id="privacyBackdrop" class="popup-backdrop" hidden aria-hidden="true"></div>
 <section id="privacyPanel" class="privacy-panel" hidden role="dialog" aria-modal="true" aria-labelledby="privacyTitle" tabindex="-1">
@@ -264,7 +267,7 @@ canvas{display:block;width:100%;height:auto;background:#222426}
 const EN={
   'PixDivide — iseci i podeli slike':'PixDivide — crop and split images',
   'Iseci jedan deo slike ili je podeli na više manjih slika. Podesi svaki okvir i preuzmi rezultate.':'Crop one part of an image or split it into smaller images. Adjust each frame and download the results.',
-  'Jezik':'Language','Ukloni sliku':'Remove image','Kako radi i privatnost':'How it works and privacy','Zatvori':'Close',
+  'Jezik':'Language','Navigacija po delovima slike':'Image part navigation','Ukloni sliku':'Remove image','Kako radi i privatnost':'How it works and privacy','Zatvori':'Close',
   'Sve slike obrađuju se na tvom uređaju i ne šalju se na server. Lokalni AI model preuzima se sa ovog sajta pri prvoj upotrebi, a zatim se čuva za sledeću obradu.':'Images are processed on your device and are not sent to a server. The local AI model is downloaded from this site on first use and saved for later.',
   'Automatska detekcija traži svetle i tamne razmake između delova slike. Ako razmaci nisu jasni, izaberi ručnu mrežu. Promena mreže ponovo postavlja sve granice.':'Automatic detection looks for light and dark gaps between image parts. If gaps are unclear, choose a manual grid. Changing the grid resets all boundaries.',
   'Dupli klik ili dodir fokusira deo slike. Kada je cela slika vidljiva, prevuci unutrašnjost dela da pomeriš okvir; kada je uvećana, prevlačenje pomera pogled. Žuti kružići menjaju granice, a zelene i plave strelice poravnavaju ivice sa susednim delovima. U prikazu svih granica moguće je samo poravnanje; klik na deo vraća uređivanje.':'Double-click or double-tap an image part to focus it. When the whole image is visible, drag inside a part to move its frame; when zoomed in, dragging pans the view. Yellow handles change boundaries, and green and blue arrows align edges with neighboring parts. In the all-boundaries view, only alignment is available; click a part to return to editing.',
@@ -390,7 +393,7 @@ const $=s=>document.querySelector(s);
 const file=$('#file'),cv=$('#preview'),ctx=cv.getContext('2d',{willReadFrequently:true});
 const detectBtn=$('#detect'),zipBtn=$('#zip'),status=$('#status'),grid=$('#grid');
 const viewer=$('#viewer'),stage=$('#stage'),zoomEl=$('#zoom'),plus=$('#plus'),minus=$('#minus'),resetZoom=$('#resetZoom');
-const prev=$('#prev'),next=$('#next'),focusBtn=$('#focus'),sceneLabel=$('#sceneLabel'),exportSize=$('#exportSize');
+const prev=$('#prev'),next=$('#next'),focusBtn=$('#focus'),mobilePrev=$('#mobilePrev'),mobileNext=$('#mobileNext'),mobileFocus=$('#mobileFocus'),sceneLabel=$('#sceneLabel'),exportSize=$('#exportSize');
 const boundariesBtn=$('#boundaries'),alignScene=$('#alignScene'),alignEdge=$('#alignEdge'),alignBtn=$('#align');
 const cropWidth=$('#cropWidth'),cropHeight=$('#cropHeight'),dimensionsBtn=$('#applyDimensions');
 const aspectRatio=$('#aspectRatio'),aspectWidth=$('#aspectWidth'),aspectHeight=$('#aspectHeight'),aspectBtn=$('#applyAspect');
@@ -523,6 +526,7 @@ function updateUI(){
   $('#overlayScene').disabled=exporting||!img;
   sceneLabel.textContent=img?tr('Deo {index} / {total}',{index:selected+1,total:crops.length}):tr('Deo —');
   prev.disabled=exporting||!img||selected===0; next.disabled=exporting||!img||selected===crops.length-1;
+  mobilePrev.disabled=prev.disabled;mobileNext.disabled=next.disabled;mobileFocus.disabled=focusBtn.disabled;
   const reference=Number(alignScene.value);
   alignScene.innerHTML=crops.map((c,i)=>i===selected?'':`<option value="${i}">${tr('Deo {index}',{index:i+1})}</option>`).join('');
   const fallback=selected%gridCols<gridCols-1?selected+1:selected%gridCols>0?selected-1:selected+gridCols<crops.length?selected+gridCols:selected-gridCols;
@@ -535,6 +539,9 @@ function syncFocusButton(){
   const focused=focusedScene===selected;
   $('#focusLabel').textContent=tr(focused?'Ukloni fokus':'Fokusiraj');
   focusBtn.setAttribute('aria-pressed',String(focused));
+  mobileFocus.setAttribute('aria-pressed',String(focused));
+  mobileFocus.setAttribute('aria-label',tr(focused?'Ukloni fokus':'Fokusiraj'));
+  mobileFocus.title=tr(focused?'Ukloni fokus':'Fokusiraj');
 }
 function syncOverlayButton(){
   $('#overlayLabel').textContent=tr(sceneOverlay?'Isključi isticanje':'Istakni ivice');
@@ -551,6 +558,9 @@ function select(i,focus=false,leaveOverview=true){
 prev.onclick=()=>select(selected-1,true);
 next.onclick=()=>select(selected+1,true);
 focusBtn.onclick=()=>focusedScene===selected?unfocusScene():focusScene();
+mobileNext.onclick=()=>{if(!next.disabled)next.onclick()};
+mobileFocus.onclick=()=>{if(!focusBtn.disabled)focusBtn.onclick()};
+mobilePrev.onclick=()=>{if(!prev.disabled)prev.onclick()};
 function setBoundaries(show){
   showBoundaries=show;drag=null;
   boundariesBtn.textContent=tr(showBoundaries?'Sakrij ostale granice':'Prikaži sve granice');
